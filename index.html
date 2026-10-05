@@ -1365,72 +1365,63 @@ if(!dm&&Q("#p-dm").classList.contains("on"))setTab("char");
 </script>
 
 <script>
-/* PARTY: live roll sharing. The DM hosts a room (PeerJS peer-to-peer), players join with the room code. */
+/* PARTY: everyone who has the sheet open in the same room sees each other's rolls live (public ntfy.sh relay, no account). */
 (function(){
-var PRE="cpsanct-",CDN="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js",ALPHA="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-var MP={st:"off",host:false,peer:null,conns:{},up:null,name:"",code:"",roster:[],msg:"",bad:false,rx:false,seen:{}};
-var _lr=window.logRoll,btn=document.getElementById("mptog"),m=document.createElement("div");
+var HOST="https://ntfy.sh/",btn=document.getElementById("mptog"),m=document.createElement("div"),
+cid=Math.random().toString(36).slice(2,10),MP={st:"off",room:"",name:"",people:{},msg:"",bad:false,rx:false,tr:null},hbT=null,seen={},T=window.__MP_TRANSPORT;
 m.id="mpm";document.body.appendChild(m);
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function dec(s){var t=document.createElement("textarea");t.innerHTML=String(s==null?"":s);return t.value}
 function clean(s,n){return esc(dec(s).slice(0,n||200))}
-function store(k,v){try{if(v===undefined)return localStorage.getItem("cps_mp_"+k)||"";localStorage.setItem("cps_mp_"+k,v)}catch(e){return""}}
+function store(k,v){try{if(v===undefined)return localStorage.getItem("cps_mp_"+k);localStorage.setItem("cps_mp_"+k,v)}catch(e){return null}}
+function slug(s){return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")}
+function topic(){var r=slug(MP.room).slice(0,30);return "cpsanct-"+(r?"t-"+r:"s-"+(slug(location.host+location.pathname.replace(/index\.html$/,"")).slice(0,40)||"local"))}
 function myName(){var h=document.querySelector('[data-k="handle"]');return(MP.name||store("name")||(h&&h.value)||"Runner").trim().slice(0,24)||"Runner"}
-/* roll hook: anything you roll is sent to the room */
-window.logRoll=function(l,t,n,c){_lr(l,t,n,c);if(MP.rx||MP.st!=="on"||c==="bad"||n==="—")return;send({k:"roll",l:String(l).slice(0,120),t:String(t).slice(0,300),n:String(n).slice(0,40),c:c||""})};
-function showRoll(from,d){var cls=String(d.c||"").replace(/[^a-z ]/g,"").slice(0,20);MP.rx=true;try{_lr("◈ "+esc(from)+" · "+clean(d.l,120),clean(d.t,300),clean(d.n,40),cls+" remote")}finally{MP.rx=false}}
-function send(o){o.from=myName();if(MP.host){bcast(o)}else if(MP.up&&MP.up.open){try{MP.up.send(o)}catch(e){}}}
-function bcast(o,except){Object.keys(MP.conns).forEach(function(id){var c=MP.conns[id];if(c!==except&&c.open){try{c.send(o)}catch(e){}}})}
-function names(){var l=[{n:myName(),dm:MP.host}];Object.keys(MP.conns).forEach(function(id){var c=MP.conns[id];if(c.meta&&c.meta.name)l.push({n:c.meta.name,dm:false})});return MP.host?l:MP.roster}
-function pushRoster(){MP.roster=names();bcast({k:"roster",list:MP.roster});ui()}
-function uniq(n){var all=names().map(function(x){return x.n.toLowerCase()}),b=n,i=2;while(all.indexOf(n.toLowerCase())>=0)n=b+" "+i++;return n}
-function onData(d,c){if(!d||typeof d!=="object")return;MP.seen[c.peer]=Date.now();
- if(MP.host){
-  if(d.k==="hello"){c.meta={name:uniq(clean(d.name,24).replace(/&amp;/g,"&")||"Runner")};c.send({k:"welcome",name:c.meta.name});pushRoster()}
-  else if(d.k==="roll"&&c.meta){d.from=c.meta.name;showRoll(d.from,d);bcast(d,c)}}
- else{
-  if(d.k==="welcome"){MP.name=d.name;MP.st="on";MP.msg="Connected to room "+MP.code;MP.bad=false;ui()}
-  else if(d.k==="roster"&&Array.isArray(d.list)){MP.roster=d.list.slice(0,40).map(function(x){return{n:String(x.n).slice(0,24),dm:!!x.dm}});ui()}
-  else if(d.k==="roll"){showRoll(String(d.from||"?").slice(0,24),d)}}}
-function lib(ok,bad){if(window.Peer)return ok();var s=document.createElement("script");s.src=CDN;s.onload=ok;s.onerror=function(){bad("Could not load the connection library. Check your internet.")};document.head.appendChild(s)}
-function fail(t){MP.msg=t;MP.bad=true;if(MP.peer){try{MP.peer.destroy()}catch(e){}}MP.peer=null;MP.up=null;MP.conns={};MP.st="off";MP.host=false;ui()}
-function host(){MP.name=myName();store("name",MP.name);MP.st="wait";MP.msg="Opening room…";MP.bad=false;ui();
- lib(function(){var code="",tries=0;
-  (function open(){code="";for(var i=0;i<5;i++)code+=ALPHA[Math.floor(Math.random()*ALPHA.length)];
-   var p=new Peer(PRE+code);MP.peer=p;
-   p.on("open",function(){MP.host=true;MP.code=code;MP.st="on";MP.msg="Room open. Share the code with your players.";MP.roster=names();ui()});
-   p.on("error",function(e){if(e&&e.type==="unavailable-id"&&tries++<5){try{p.destroy()}catch(x){}open()}else fail("Could not open the room ("+(e&&e.type||"error")+").")});
-   p.on("connection",function(c){c.on("data",function(d){onData(d,c)});c.on("close",function(){delete MP.conns[c.peer];pushRoster()});c.on("error",function(){});c.on("open",function(){MP.conns[c.peer]=c;MP.seen[c.peer]=Date.now()})})})()},fail)}
-function join(code){code=String(code||"").toUpperCase().replace(/[^A-Z0-9]/g,"");if(code.length<4){MP.msg="Enter the room code from your DM.";MP.bad=true;ui();return}
- MP.name=myName();store("name",MP.name);store("code",code);MP.code=code;MP.st="wait";MP.msg="Connecting…";MP.bad=false;ui();
- lib(function(){var p=new Peer(),to=setTimeout(function(){if(MP.st==="wait")fail("No answer. Is the room code right and the DM online?")},15000);MP.peer=p;
-  p.on("error",function(e){clearTimeout(to);fail(e&&e.type==="peer-unavailable"?"Room not found. Check the code.":"Connection error ("+(e&&e.type||"unknown")+").")});
-  p.on("open",function(){var c=p.connect(PRE+code,{reliable:true});MP.up=c;
-   c.on("open",function(){clearTimeout(to);MP.seen.up=Date.now();c.send({k:"hello",name:MP.name})});
-   c.on("data",function(d){MP.seen.up=Date.now();onData(d,c)});
-   c.on("close",function(){if(MP.st==="on")fail("The DM left the room.")});c.on("error",function(){})})},fail)}
-function leave(){if(MP.peer){try{MP.peer.destroy()}catch(e){}}MP.peer=null;MP.up=null;MP.conns={};MP.st="off";MP.host=false;MP.roster=[];MP.msg="Disconnected.";MP.bad=false;ui()}
-setInterval(function(){if(MP.st!=="on")return;var now=Date.now();
- if(MP.host){bcast({k:"ping"});Object.keys(MP.conns).forEach(function(id){if(now-(MP.seen[id]||now)>35000){try{MP.conns[id].close()}catch(e){}delete MP.conns[id];pushRoster()}})}
- else{send({k:"ping"});if(now-(MP.seen.up||now)>35000)fail("Lost the connection to the DM.")}},8000);
-function ui(){var on=MP.st==="on";btn.textContent=on?"PARTY: "+(MP.host?"DM · ":"")+Math.max(1,MP.roster.length)+" ONLINE":"PARTY: OFF";btn.classList.toggle("on",on);btn.setAttribute("aria-pressed",on?"true":"false");render()}
+function ntfy(tp){var ev;return{
+ pub:function(o){try{fetch(HOST+tp,{method:"POST",body:JSON.stringify(o)}).catch(function(){})}catch(e){}},
+ sub:function(cb,st){ev=new EventSource(HOST+tp+"/sse");ev.onopen=function(){st(true)};ev.onerror=function(){st(false)};
+  ev.onmessage=function(e){try{var j=JSON.parse(e.data);if(j.event==="message"&&j.message)cb(JSON.parse(j.message),j.id)}catch(x){}}},
+ close:function(){if(ev)ev.close()},
+ bye:function(o){try{navigator.sendBeacon(HOST+tp,JSON.stringify(o))}catch(e){}}}}
+/* roll hook */
+var _lr=window.logRoll;
+window.logRoll=function(l,t,n,c){_lr(l,t,n,c);if(MP.rx||MP.st!=="on"||c==="bad"||n==="—")return;send({k:"roll",l:String(l).slice(0,120),t:String(t).slice(0,300),n:String(n).slice(0,40),x:c||""})};
+function showRoll(from,d){var cls=String(d.x||"").replace(/[^a-z ]/g,"").slice(0,20);MP.rx=true;try{_lr("◈ "+esc(from)+" · "+clean(d.l,120),clean(d.t,300),clean(d.n,40),cls+" remote")}finally{MP.rx=false}}
+function send(o){if(!MP.tr)return;o.c=cid;o.p=MP.name;o.ts=Date.now();MP.tr.pub(o)}
+function recv(d,id){if(!d||typeof d!=="object"||d.c===cid||!d.c)return;if(id){if(seen[id])return;seen[id]=1}
+ var nm=dec(d.p||"Runner").slice(0,24)||"Runner",c=String(d.c).slice(0,12);
+ if(d.k==="bye"){delete MP.people[c];ui();return}
+ if(d.k!=="hb"&&d.k!=="hello"&&d.k!=="roll")return;
+ var isNew=!MP.people[c];MP.people[c]={n:nm,t:Date.now()};
+ if(d.k==="hello")setTimeout(function(){send({k:"hb"})},Math.random()*1500);
+ if(d.k==="roll"&&Math.abs(Date.now()-(+d.ts||0))<600000)showRoll(nm,d);
+ if(isNew||d.k==="hello")ui()}
+function prune(){var now=Date.now(),ch=false;Object.keys(MP.people).forEach(function(k){if(now-MP.people[k].t>55000){delete MP.people[k];ch=true}});if(ch)ui()}
+function connect(){stop();MP.name=myName();store("name",MP.name);store("room",MP.room);store("on","1");
+ MP.tr=(T||ntfy)(topic());MP.st="wait";MP.msg="Connecting…";MP.bad=false;ui();
+ MP.tr.sub(recv,function(ok){if(ok){if(MP.st!=="on"){MP.st="on";MP.msg="";MP.bad=false;send({k:"hello"})}}else if(MP.st==="on"||MP.st==="wait"){MP.st="wait";MP.msg="Reconnecting… check your internet.";MP.bad=true}ui()});
+ clearInterval(hbT);hbT=setInterval(function(){if(MP.st==="on"){send({k:"hb"});prune()}},20000)}
+function stop(){clearInterval(hbT);if(MP.tr){try{MP.tr.close()}catch(e){}}MP.tr=null;MP.people={};MP.st="off"}
+function leave(){if(MP.tr&&MP.tr.bye&&MP.st==="on")MP.tr.bye({k:"bye",c:cid,p:MP.name});stop();store("on","0");MP.msg="Disconnected.";MP.bad=false;ui()}
+addEventListener("pagehide",function(){if(MP.tr&&MP.tr.bye&&MP.st==="on")MP.tr.bye({k:"bye",c:cid,p:MP.name})});
+function list(){var l=[{n:myName(),me:true}];Object.keys(MP.people).forEach(function(k){l.push({n:MP.people[k].n})});return l}
+function ui(){var on=MP.st==="on";btn.textContent=on?"PARTY: "+list().length+" ONLINE":MP.st==="wait"?"PARTY: …":"PARTY: OFF";btn.classList.toggle("on",on);btn.setAttribute("aria-pressed",on?"true":"false");render()}
 function render(){if(!m.classList.contains("on"))return;
- var h='<div class="mb"><h3>PARTY <button class="mini" data-mp="close">✕</button></h3>';
- if(MP.st==="on"){
-  h+='<div class="code" title="Room code">'+esc(MP.code)+'</div><div class="st'+(MP.bad?" bad":"")+'">'+esc(MP.msg)+'</div><ul>'+MP.roster.map(function(x){return'<li><span>'+esc(x.n)+'</span>'+(x.dm?'<em>DM</em>':'')+'</li>'}).join("")+'</ul><small>Everyone in the room sees what you roll. Nothing else from your sheet is shared.</small><div class="row"><button class="g" data-mp="copy">COPY CODE</button><button class="g" data-mp="leave">DISCONNECT</button></div>'}
- else{
-  var busy=MP.st==="wait";
-  h+='<label>YOUR NAME<input class="fi" id="mpn" value="'+esc(myName())+'" maxlength="24"></label>'+
-   '<label>ROOM CODE (PLAYERS)<input class="fi" id="mpc" value="'+esc(MP.code||store("code"))+'" maxlength="8" placeholder="e.g. K7Q2M" style="text-transform:uppercase"></label>'+
-   '<div class="row"><button class="g" data-mp="join"'+(busy?" disabled":"")+'>JOIN ROOM</button><button class="g" data-mp="host"'+(busy?" disabled":"")+'>HOST AS DM</button></div>'+
-   '<div class="st'+(MP.bad?" bad":"")+'">'+esc(MP.msg)+'</div><small>The DM presses HOST AS DM and sends the 5-letter code. Players press JOIN ROOM. Keep the DM tab open for the whole session.</small>'}
- m.innerHTML=h+'</div>'}
+ var live=MP.st==="on"||MP.st==="wait",h='<div class="mb"><h3>PARTY <button class="mini" data-mp="close">✕</button></h3>'+
+ '<label>YOUR NAME<input class="fi" id="mpn" value="'+esc(myName())+'" maxlength="24"></label>'+
+ '<label>TABLE NAME (OPTIONAL)<input class="fi" id="mpc" value="'+esc(MP.room)+'" maxlength="30" placeholder="blank = everyone on this site"></label>'+
+ '<div class="row"><button class="g" data-mp="go">'+(live?"UPDATE":"CONNECT")+'</button>'+(live?'<button class="g" data-mp="leave">DISCONNECT</button>':'')+'</div>'+
+ '<div class="st'+(MP.bad?" bad":"")+'">'+esc(MP.msg||(MP.st==="on"?"Live. Rolls you make appear for everyone below.":""))+'</div>';
+ if(MP.st==="on")h+='<ul>'+list().map(function(x){return'<li><span>'+esc(x.n)+(x.me?" (you)":"")+'</span></li>'}).join("")+'</ul>';
+ h+='<small>Everyone with this page open and the same table name sees every roll live, marked with the roller\'s name. Use a table name (like "friday-crew") to keep your group separate from other visitors. Only roll results are shared.</small></div>';
+ m.innerHTML=h}
 m.addEventListener("click",function(e){var a=e.target.closest("[data-mp]"),k=a&&a.dataset.mp;if(e.target===m||k==="close"){m.classList.remove("on");return}if(!k)return;
- var n=document.getElementById("mpn"),c=document.getElementById("mpc");if(n&&n.value.trim()){MP.name=n.value.trim()}
- if(k==="host")host();else if(k==="join")join(c&&c.value);else if(k==="leave")leave();
- else if(k==="copy"){try{navigator.clipboard.writeText(MP.code);MP.msg="Code copied.";MP.bad=false;render()}catch(x){}}});
+ var n=document.getElementById("mpn"),c=document.getElementById("mpc");if(n&&n.value.trim())MP.name=n.value.trim();if(c)MP.room=c.value.trim();
+ if(k==="go")connect();else if(k==="leave")leave()});
 btn.addEventListener("click",function(){m.classList.add("on");render()});
-window.__party=MP;ui();
+window.__party=MP;
+MP.room=store("room")||"";MP.name=store("name")||"";ui();
+if(store("on")!=="0")connect();
 })();
 
 </script>
