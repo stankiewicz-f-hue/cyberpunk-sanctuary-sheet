@@ -615,6 +615,22 @@ display:none;pointer-events:none;z-index:20}
 }
 
 </style>
+<style id="bpnet-css">
+.bp-net{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:10px 14px;margin:0 0 14px;border:1px solid var(--line);border-left:3px solid var(--hot);background:linear-gradient(100deg,var(--deep),color-mix(in srgb,var(--p1) 18%,var(--deep)))}
+.bp-net .nj{font:700 11px "Orbitron",sans-serif;letter-spacing:.18em;padding:5px 10px;border:1px solid var(--line);color:var(--mute)}
+.bp-net .nj.on{color:#5dffa0;border-color:#5dffa0;box-shadow:0 0 10px #5dffa044}
+.bp-net .np{display:flex;gap:6px}.bp-net .np i{width:13px;height:13px;transform:rotate(45deg);border:1px solid var(--hc);background:transparent}
+.bp-net .np i.on{background:var(--hc);box-shadow:0 0 8px var(--hc)}
+.bp-net .nt{flex:1;min-width:150px;font-size:14px;color:var(--soft)}
+.bp-steps{list-style:none;margin:10px 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.bp-steps li{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border:1px solid var(--line);background:#ffffff06;opacity:.7}
+.bp-steps li b{font:700 16px "Orbitron",sans-serif;color:var(--p2)}
+.bp-steps li span{font:700 10px "Orbitron",sans-serif;letter-spacing:.14em}
+.bp-steps li small{font-size:12px;color:var(--mute)}
+.bp-steps li.now{opacity:1;border-color:var(--hot);box-shadow:0 0 12px #ff3ea544}
+.bp-steps li.done{opacity:1;border-color:#5dffa0}.bp-steps li.done b{color:#5dffa0}
+.nomove{opacity:.5;outline:1px dashed var(--hot);outline-offset:2px}
+</style>
 </head><body>
 <aside class="rail adl" id="rail-l" aria-label="Advertisements"><div class="rt"><span>SPONSORED</span><button class="adx" data-adoff title="Hide ads" aria-label="Hide ads">✕</button></div></aside>
 <aside class="rail adr" id="rail-r" aria-label="Advertisements"><div class="rt"><span>SPONSORED</span><button class="adx" data-adoff title="Hide ads" aria-label="Hide ads">✕</button></div></aside>
@@ -841,15 +857,18 @@ const QHS={jack:false,breach:false,used:0,hit:{}};
 document.getElementById("rext").insertAdjacentHTML("beforeend",`<div class="rx" data-rxp="Netrunner" hidden><h4>QUICKHACKS · IN COMBAT<span>INTERFACE CHECK = d10 + RANK</span></h4><small>Use this in a fight, when there is no time to dive. It sits alongside the Breach Protocol and does not replace it (Edgerunners Mission Kit rules). You hack a target's Neuroport from up to 50 m/yds away. Each step costs one Net action: <b>Jack In</b>, <b>Breach</b> any Passwall, <b>Quickhack</b>, <b>Jack Out</b>. Every check is d10 + your Interface rank against a DV. You get one quickhack per target per turn, even on a failure. Press NEW TURN at the start of each turn. Hacks with a blank DV: type the DV from your book. To play the Breach step as the minigame, press OPEN BREACH PROTOCOL below: it takes this target, the Passwall DV and your Interface bonus, and landing its Backdoor sequence marks the Passwall breached for you. MARK BREACHED is still here for a GM call.</small>
 <div class="rxr"><small>Passwall up, or not in combat? Play it as the full Breach Protocol minigame.</small><button type="button" class="mini" data-breach="qh">OPEN BREACH PROTOCOL</button></div>
 <div class="rxr qhs"><span class="badge" id="qhj">NOT JACKED IN</span><span class="badge" id="qhb">NO PASSWALL</span><span class="badge" id="qhu">NET ACTIONS 0</span></div>
-<div class="rxr"><label>TARGET<input class="fi nm3" id="qhtg" placeholder="Name"></label><label>PASSWALL DV<input class="fi" id="qhpw" type="number" min="0" placeholder="none"></label><label>NET ACTIONS / TURN<input class="fi" type="number" min="0" data-k="qh_na"></label><label>INTERFACE BONUS<input class="fi" type="number" data-k="qh_b"></label></div>
+<div class="rxr"><label>TARGET<input class="fi nm3" id="qhtg" placeholder="Name"></label><label>PASSWALL DV<input class="fi" id="qhpw" type="number" min="0" placeholder="none"></label><label>NET ACTIONS / TURN<input class="fi" type="number" min="0" placeholder="auto" data-k="qh_na"></label><label>INTERFACE BONUS<input class="fi" type="number" data-k="qh_b"></label></div>
 <div class="rxr"><button class="mini" data-qhn="in">JACK IN</button><button class="mini" data-qhn="br">BREACH</button><button class="mini g" data-qhn="mb">MARK BREACHED</button><button class="mini" data-qhn="out">JACK OUT</button><button class="mini g" data-qhn="turn">NEW TURN</button></div>`+QH.map((h,i)=>`<div class="rxr"><b>${h[0]}<small>${h[2]}</small></b><label>DV<input class="fi" type="number" min="0" placeholder="?" data-k="qh_dv_${i}"></label><button class="mini" data-qh="${i}">HACK</button></div>`).join("")+"</div>");
 const qhRank=()=>rkOf("Netrunner"),qhKey=()=>($("#qhtg").value||"").trim().toLowerCase()||"(target)";
 function withDV(dv,fn){const e=$("#dv");let o=null;if(dv&&![...e.options].some(x=>+x.value==dv)){o=document.createElement("option");o.value=dv;e.appendChild(o)}const old=e.value;if(dv)e.value=dv;try{return fn()}finally{e.value=old;if(o)o.remove()}}
-function qhUi(){const j=$("#qhj");if(!j)return;const cap=+val("qh_na").value||0,pw=+$("#qhpw").value||0,b=$("#qhb"),u=$("#qhu");
+function qhUi(){const j=$("#qhj");if(!j)return;const cap=qhCap(),pw=+$("#qhpw").value||0,b=$("#qhb"),u=$("#qhu");
  j.textContent=QHS.jack?"JACKED IN":"NOT JACKED IN";j.className="badge"+(QHS.jack?"":" sw");
  b.textContent=!pw?"NO PASSWALL":QHS.breach?"PASSWALL BREACHED":"PASSWALL UP";b.className="badge"+(!pw||QHS.breach?"":" sw");
- u.textContent="NET ACTIONS "+QHS.used+(cap?" / "+cap:"");u.className="badge"+(cap&&QHS.used>=cap?" mw":"")}
-function qhNet(){const cap=+val("qh_na").value||0;if(cap&&QHS.used>=cap){logRoll("Net actions","all "+cap+" used this turn: press NEW TURN","✗","bad");return false}QHS.used++;return true}
+ u.textContent="NET ACTIONS "+QHS.used+(cap?" / "+cap:"");u.className="badge"+(cap&&QHS.used>=cap?" mw":"");if(window.bpNetBar)window.bpNetBar()}
+function qhNet(){const cap=qhCap();if(cap&&QHS.used>=cap){logRoll("Net actions","all "+cap+" used this turn: press NEW TURN","✗","bad");return false}QHS.used++;return true}
+function qhCap(){const v=+val("qh_na").value||0;if(v)return v;const r=qhRank();return r?(r>=10?5:r>=7?4:r>=4?3:2):0}
+function qhMove(label){const cap=qhCap(),of=cap?" / "+cap:"";if(cap&&QHS.used>=cap)return{ok:false,msg:"No Net actions left ("+QHS.used+" / "+cap+"). Press END TURN above to refresh them, or UNPLUG."};
+ QHS.used++;logRoll("Breach Protocol",label+" · Net action "+QHS.used+of,"NET −1","");qhUi();return{ok:true,msg:""}}
 function qhCheck(label,dv){return withDV(dv,()=>roll(label,qhRank(),+val("qh_b").value||0,"bonus"))}
 function qhJack(){const rk=qhRank();if(!rk){logRoll("Jack In","set your Netrunner RANK first","—","bad");return}
  if(QHS.jack){logRoll("Jack In","already connected","—","");return}
@@ -867,15 +886,14 @@ function qhOut(){if(!QHS.jack){logRoll("Jack Out","not connected","—","");retu
 function qhMark(){QHS.jack=true;QHS.breach=true;logRoll("Breach","marked as done (minigame or GM call)","DONE","ok");qhUi()}
 /* Breach Protocol <-> sheet: the overlay reads and writes the open character only through this object */
 function takeLuck(){const lk=Math.max(0,Math.min(+$("#lk2").value||0,+val("luck").value||0));if(lk){val("luck").value=+val("luck").value-lk;$("#lk2").value=0;upd()}return lk}
-function qhRunStart(){const rk=qhRank(),cap=+val("qh_na").value||0,pw=+$("#qhpw").value||0,of=cap?" / "+cap:"";
- if(!pw)return{ok:true,msg:"No Passwall set on the sheet: this run is free, no Net action spent."};
- if(QHS.breach)return{ok:false,msg:"The Passwall is already breached on your sheet. Go and quickhack, no run needed."};
+function qhRunStart(cx){const rk=qhRank(),cap=qhCap(),pw=+$("#qhpw").value||0,of=cap?" / "+cap:"";
+ if(cx==='qh'&&pw&&QHS.breach)return{ok:false,msg:"The Passwall is already breached on your sheet. Go and quickhack, no run needed."};
  if(!rk)return{ok:false,msg:"Set your Netrunner rank on the Role & Status tab first."};
  if(!QHS.jack)return{ok:false,msg:"Jack In first: it costs a Net action. Use JACK IN in the Quickhacks panel."};
  if(cap&&QHS.used>=cap)return{ok:false,msg:"No Net actions left this turn ("+QHS.used+" / "+cap+"). Press NEW TURN on the sheet first."};
- QHS.used++;logRoll("Breach Protocol","run started against Passwall DV "+pw+" · Net action "+QHS.used+of,"NET −1","");qhUi();
+ QHS.used++;logRoll("Breach Protocol",(cx==='qh'&&pw?"deep dive started against Passwall DV "+pw:"deep dive started")+" · Net action "+QHS.used+of,"NET −1","");qhUi();
  return{ok:true,msg:"Net action spent ("+QHS.used+of+")."}}
-function qhUnplug(){const cap=+val("qh_na").value||0,of=cap?" / "+cap:"";
+function qhUnplug(){const cap=qhCap(),of=cap?" / "+cap:"";
  if(!QHS.jack)return{ok:true,msg:""};
  const pay=!cap||QHS.used<cap;if(pay)QHS.used++;QHS.jack=false;QHS.breach=false;
  logRoll("Unplug",pay?"jacked out of the target · Net action "+QHS.used+of:"jacked out with no Net action left (your GM calls the cost)","JACKED OUT","");qhUi();
@@ -894,7 +912,7 @@ const BPX={
  runner:()=>val("handle").value.trim(),
  rank:()=>rkOf("Netrunner"),
  mods(){const parts=[],add=(l,n)=>{if(n)parts.push([l,n])},rs=restState();add("wounds",pen());add(isRobot()?"low power":"sleep",rs.pen||0);add("MOD",+$("#md").value||0);add("Interface bonus",+val("qh_b").value||0);return{parts,total:parts.reduce((a,p)=>a+p[1],0),out:!!rs.out}},
- netStart:()=>qhRunStart(),jackOut:()=>qhUnplug(),hpInfo:()=>bpHpInfo(),hit:(x,w)=>bpHit(x,w),
+ netStart:c=>qhRunStart(c),setHp:v=>{val("hp").value=v;upd();logRoll("Breach Protocol","GM waived the hit: HP back to "+v,"UNDONE","")},net:()=>({jack:QHS.jack,breach:QHS.breach,used:QHS.used,cap:qhCap(),rank:qhRank()}),jackIn:()=>{qhJack()},turn:()=>qhTurn(),move:l=>qhMove(l),jackOut:()=>qhUnplug(),hpInfo:()=>bpHpInfo(),hit:(x,w)=>bpHit(x,w),
  outText:()=>isRobot()?"Powered off: recharge on the Role & Status tab first. The sheet blocks rolls at 0 power, and so does the breach.":"0 sleep left: rest on the Role & Status tab first. The sheet blocks rolls at 0 sleep, and so does the breach.",
  luck:takeLuck,
  passwall:()=>+$("#qhpw").value||0,
@@ -1242,6 +1260,7 @@ pl.addEventListener("click",function(){
 <div class="bp-link" id="bp-link"></div>
 
 <main id="bp-setup">
+<div class="bp-net" role="group" aria-label="Net status"><span class="nj" data-nj>JACKED OUT</span><span class="np" data-np aria-hidden="true"></span><span class="nt" data-nt></span><button type="button" class="mini g" data-netturn title="New turn: refreshes your Net actions">END TURN</button></div>
   <div class="bp-cols">
     <section class="bp-card" aria-labelledby="bp-h-check">
       <h4 id="bp-h-check">NETRUNNING CHECK</h4>
@@ -1263,7 +1282,7 @@ pl.addEventListener("click",function(){
         </div>
       </div>
       <p id="bp-tierText" class="bp-note"></p>
-      <label class="bp-dive"><input id="bp-diveMode" type="checkbox"><span>Full dive: fight through multiple floors</span></label>
+      <label class="bp-dive"><input id="bp-diveMode" type="checkbox"><span>Deep dive: fight through multiple floors <b style="color:#ff9bd2">(mandatory)</b></span></label>
       <p id="bp-diveText" class="bp-note"></p>
       <div class="bp-row">
         <label class="bp-lab" for="bp-roll">d10 result</label>
@@ -1288,8 +1307,9 @@ pl.addEventListener("click",function(){
     </section>
 
     <section class="bp-card" aria-labelledby="bp-h-board">
-      <h4 id="bp-h-board">BEFORE YOU JACK IN</h4>
-      <p class="bp-note">Interface and Difficulty set the board. Roll your d10, or let the GM roll it, then jack in. Everything else is handled for you: open GM options on the left only if you need to fine-tune the architecture.</p>
+      <h4 id="bp-h-board">HOW A RUN WORKS</h4>
+      <ol class="bp-steps" id="bp-steps"><li><b>1</b><span>JACK IN</span><small>1 Net action</small></li><li><b>2</b><span>BREACH THE FLOOR</span><small>1 Net action</small></li><li><b>3</b><span>GO DEEPER</span><small>1 Net action per floor</small></li><li><b>4</b><span>UNPLUG</span><small>1 Net action</small></li></ol>
+      <p class="bp-note">Set Interface and Difficulty and roll your d10. The big button jacks you in first; press it again to start the breach. Every move to a deeper floor costs a Net action, so plan your turns.</p>
       <span class="bp-lab" id="bp-chipLab" style="margin-top:14px">Sequences on the board</span>
       <div id="bp-chips" class="chips" role="group" aria-labelledby="bp-chipLab"></div>
       <button id="bp-reroll" class="g" type="button">SHUFFLE SEQUENCES</button>
@@ -1308,6 +1328,9 @@ pl.addEventListener("click",function(){
   <details class="bp-how">
     <summary>HOW IT PLAYS</summary>
     <ul>
+      <li><b>Net actions:</b> Jack In, starting the breach, every move to a deeper floor (Descend, Slide or a fork door) and Unplug each cost 1 Net action. You get 2 at Interface 1 to 3, 3 at 4 to 6, 4 at 7 to 9 and 5 at 10, unless you type your own total in the Quickhacks panel. END TURN refreshes them.</li>
+      <li><b>Damage:</b> when ICE is still standing as you jack out, or a breach locks you out, the hit is rolled for you and taken straight off your HP (armor skipped). ICE hits 2d6 at Black Site, 3d6 at Militech and 4d6 at Arasaka, half as many dice if you wounded it. A failed breach costs 1d6, or 2d6 from Black Site up. The GM can waive a hit with one tap.</li>
+      <li><b>Virus payload:</b> land the Virus on the bottom floor and you can write what you rewrite in the system. Your party sees it in the Roll Log.</li>
       <li>The first pick comes from the highlighted top row. After that the picks alternate: a column, then a row, then a column again. A cell can only be used once.</li>
       <li>Picked codes drop into the buffer in order. A sequence uploads once its codes sit back to back, in order, anywhere in the buffer. Sequences can overlap, which is how a small buffer covers a lot.</li>
       <li>The breach ends when the buffer is full, time runs out, or nothing else can be uploaded. Each uploaded sequence is a NET action that succeeds.</li>
@@ -1325,6 +1348,7 @@ pl.addEventListener("click",function(){
 </main>
 
 <main id="bp-breach" hidden>
+<div class="bp-net" role="group" aria-label="Net status"><span class="nj" data-nj>JACKED OUT</span><span class="np" data-np aria-hidden="true"></span><span class="nt" data-nt></span><button type="button" class="mini g" data-netturn title="New turn: refreshes your Net actions">END TURN</button></div>
   <div>
     <p id="bp-tgtName" class="tname"></p>
     <p id="bp-tgtMeta" class="tmeta"></p>
@@ -1343,7 +1367,7 @@ pl.addEventListener("click",function(){
         <span id="bp-timerNum" class="timer" role="timer" aria-live="off">0.0 s</span>
       </div>
       <div class="bp-tools">
-        <button id="bp-unplug" type="button">UNPLUG</button>
+        <button id="bp-unplug" type="button">UNPLUG · 1 NET</button>
         <button id="bp-pause" class="g" type="button">PAUSE</button>
         <button id="bp-abort" class="g" type="button">BACK TO SETUP</button>
       </div>
@@ -1368,6 +1392,7 @@ pl.addEventListener("click",function(){
         <p id="bp-pathLine" class="bp-note" hidden></p>
         <ul id="bp-diveBreakdown" class="breakdown" hidden></ul>
         <div id="bp-forkDoors" class="forkdoors" hidden></div>
+        <p id="bp-moveMsg" class="bp-msg" role="alert" hidden></p>
         <div class="actions">
           <button id="bp-again" type="button">NEW BOARD</button>
           <button id="bp-slideBtn" class="g" type="button" hidden>SLIDE PAST</button>
@@ -1563,7 +1588,7 @@ var el={
   link:$('#bp-link'),sheetLine:$('#bp-sheetLine'),
   diveMode:$('#bp-diveMode'),diveText:$('#bp-diveText'),floorLabel:$('#bp-floorLabel'),
   icePanel:$('#bp-icePanel'),iceName:$('#bp-iceName'),iceRezText:$('#bp-iceRezText'),iceBarFill:$('#bp-iceBarFill'),
-  iceLine:$('#bp-iceLine'),diveBreakdown:$('#bp-diveBreakdown'),pathLine:$('#bp-pathLine'),slideBtn:$('#bp-slideBtn'),iceHint:$('#bp-iceHint'),forkDoors:$('#bp-forkDoors')
+  iceLine:$('#bp-iceLine'),diveBreakdown:$('#bp-diveBreakdown'),pathLine:$('#bp-pathLine'),slideBtn:$('#bp-slideBtn'),iceHint:$('#bp-iceHint'),forkDoors:$('#bp-forkDoors'),moveMsg:$('#bp-moveMsg')
 };
 
 /* ---------- storage ---------- */
@@ -1749,9 +1774,41 @@ function genBoardWithFallback(size,B,daemonsList,dv,protectId){
   return {board:board,dropped:dropped};
 }
 
+function netBar(){
+  var n=(typeof BPX!=='undefined'&&BPX.net)?BPX.net():null; if(!n) return;
+  var left=n.cap?Math.max(0,n.cap-n.used):null, out=!!(n.cap&&n.used>=n.cap);
+  [].forEach.call(document.querySelectorAll('.bp-net'),function(b){
+    var j=b.querySelector('[data-nj]'),p=b.querySelector('[data-np]'),t=b.querySelector('[data-nt]');
+    j.textContent=n.jack?'JACKED IN':'JACKED OUT'; j.className='nj'+(n.jack?' on':'');
+    p.innerHTML='';
+    if(n.cap){
+      for(var i=0;i<Math.min(n.cap,10);i++){var d=document.createElement('i'); if(i<left) d.className='on'; p.appendChild(d);}
+      t.textContent=left+' of '+n.cap+' Net actions left'+(out?'. Press END TURN to refresh.':'');
+    } else t.textContent=n.rank?'':'Set your Netrunner rank on the sheet to count Net actions.';
+  });
+  el.start.textContent=n.jack?'START BREACH \u00b7 1 NET ACTION':'JACK IN \u00b7 1 NET ACTION';
+  [].forEach.call(document.querySelectorAll('#bp-steps li'),function(li,i){var a=n.jack?1:0; li.className=i<a?'done':(i===a?'now':'');});
+  [el.again,el.slideBtn].forEach(function(b){ if(b&&b.getAttribute('data-move')) b.classList.toggle('nomove',out); });
+  [].forEach.call(el.forkDoors.querySelectorAll('button.door'),function(b){ b.classList.toggle('nomove',out); });
+}
+window.bpNetBar=netBar;
+function move(label,fn){
+  var r=(typeof BPX!=='undefined'&&BPX.move)?BPX.move(label):{ok:true};
+  if(!r.ok){ el.moveMsg.textContent=r.msg; el.moveMsg.hidden=false; sfx.fail(); netBar(); return; }
+  el.moveMsg.hidden=true; el.moveMsg.textContent=''; fn(); netBar();
+}
+document.addEventListener('click',function(e){ var b=e.target.closest&&e.target.closest('[data-netturn]'); if(b){ BPX.turn(); netBar(); } });
 function startGame(){
-  if(ctx==='qh'){
-    var gt=BPX.netStart();
+  var n0=(typeof BPX!=='undefined'&&BPX.net)?BPX.net():{jack:true};
+  if(!n0.jack){
+    if(!n0.rank){el.msg.textContent='Set your Netrunner rank on the Role & Status tab first.';return;}
+    if(n0.cap&&n0.used>=n0.cap){el.msg.textContent='No Net actions left ('+n0.used+' / '+n0.cap+'). Press END TURN above to refresh them.';return;}
+    BPX.jackIn(); var n1=BPX.net(); netBar();
+    el.msg.textContent=n1.jack?'Connected. Now press START BREACH (1 Net action) to run the architecture.':'The jack-in failed. Press JACK IN again (it costs another Net action).';
+    return;
+  }
+  {
+    var gt=BPX.netStart(ctx);
     if(!gt.ok){el.msg.textContent=gt.msg; showSheetLine(gt.msg); return;}
     showSheetLine(gt.msg);
   }
@@ -1890,6 +1947,7 @@ function renderIce(){
 }
 
 function presentFloor(){
+  el.moveMsg.hidden=true; if(window.__bpVirus) window.__bpVirus.show(false);
   buildBoard();
   el.result.hidden=true; el.veil.hidden=true;
   el.pause.hidden=false; el.unplug.hidden=false; el.pause.textContent='PAUSE'; el.copyMsg.textContent=''; el.sheetLine.hidden=true; el.sol.textContent='SHOW SOLUTION';
@@ -2090,7 +2148,7 @@ function finishDiveReport(){
     el.resCons.textContent=dive.cons||pick(BACKLASH[oCls==='bad'?'bad':'partial']);
     el.resCons.hidden=false;
   } else {el.resCons.hidden=true;el.resCons.textContent='';}
-  el.iceLine.hidden=true; el.pathLine.hidden=true; el.slideBtn.hidden=true;
+  el.iceLine.hidden=!(lastR&&lastR.ice&&!lastR.ice.neutralized); el.pathLine.hidden=true; el.slideBtn.hidden=true;
   el.diveBreakdown.hidden=false; el.diveBreakdown.innerHTML='';
   var fc=0;
   dive.results.forEach(function(r){
@@ -2114,6 +2172,7 @@ function finishDiveReport(){
   el.again.textContent='NEW DIVE';
   el.again.onclick=startGame;
   el.result.hidden=false;
+  if(window.__bpVirus) window.__bpVirus.show(!!dive.virusLanded,dive.target);
   dive.active=false;
   var floorsCleared=mains.filter(function(r){return r.cls==='full';}).length;
   pushRun({t:Date.now(),target:dive.target,rank:dive.rank,dv:dive.dv0,roll:dive.rollRaw,
@@ -2128,8 +2187,9 @@ function renderForkChoices(){
   if(f.bypassed){
     el.forkDoors.hidden=true;
     el.pathLine.textContent='Slide carries you straight past the fork, down the right branch.'; el.pathLine.hidden=false;
-    el.again.hidden=false; el.again.textContent='CONTINUE';
-    el.again.onclick=function(){ dive.phase='core'; f.resolved=true; loadFloor(1); };
+    el.again.hidden=false; el.again.textContent='CONTINUE \u00b7 1 NET ACTION'; el.again.setAttribute('data-move','1');
+    el.again.onclick=function(){ move('Continue past the fork',function(){ dive.phase='core'; f.resolved=true; loadFloor(1); }); };
+    netBar();
     return;
   }
   el.pathLine.textContent=f.revealed?('Pathfinder mapped the fork: '+f.doors[f.correctIdx].label+' leads to the bottom.')
@@ -2141,14 +2201,15 @@ function renderForkChoices(){
     var tried=f.tried.indexOf(i)!==-1;
     var mapped=f.revealed&&i===f.correctIdx;
     if(mapped) b.className+=' mapped';
-    b.innerHTML='<span></span><small>'+(tried?'dead end':(mapped?'mapped':''))+'</small>';
+    b.innerHTML='<span></span><small>'+(tried?'dead end':(mapped?'mapped \u00b7 1 Net action':'1 Net action'))+'</small>';
     b.firstChild.textContent=dr.label;
     b.disabled=tried;
-    b.addEventListener('click',function(){ pickDoor(i); });
+    b.addEventListener('click',function(){ move('Take '+dr.label,function(){ pickDoor(i); }); });
     el.forkDoors.appendChild(b);
   });
   el.forkDoors.hidden=false;
   el.again.hidden=true;
+  netBar();
 }
 function pickDoor(i){
   if(!dive||!dive.fork||!dive.active) return;
@@ -2215,10 +2276,12 @@ function finish(reason){
   }
   el.pause.hidden=true; el.unplug.hidden=true; el.veil.hidden=true;
   el.forkDoors.hidden=true; el.forkDoors.innerHTML=''; el.again.hidden=false;
+  el.again.removeAttribute('data-move'); el.slideBtn.removeAttribute('data-move'); el.again.classList.remove('nomove'); el.slideBtn.classList.remove('nomove');
 
   if(dive&&dive.active){
     dive.results.push({idx:dive.floorIndex,n:n,total:total,cls:cls,ice:iceResult,unplugged:reason==='unplug',deadend:!!game.isDeadEnd,door:game.doorLabel||null});
     var isLast=!game.isDeadEnd&&(dive.floorIndex===dive.totalFloors-1);
+    if(isLast&&game.seqs.some(function(q){return q.id==='virus'&&q.done;})) dive.virusLanded=true;
     var diveEnds=(n===0)||isLast||reason==='unplug';
 
     if(iceText){ el.iceLine.textContent=iceText; el.iceLine.hidden=false; } else { el.iceLine.hidden=true; }
@@ -2253,14 +2316,14 @@ function finish(reason){
 
       if(hasSlide){
         el.slideBtn.hidden=false;
-        el.slideBtn.textContent='SLIDE PAST FLOOR '+(dive.floorIndex+2);
-        el.slideBtn.onclick=doSlide;
+        el.slideBtn.textContent='SLIDE PAST FLOOR '+(dive.floorIndex+2)+' \u00b7 1 NET ACTION'; el.slideBtn.setAttribute('data-move','1');
+        el.slideBtn.onclick=function(){ move('Slide past floor '+(dive.floorIndex+2),doSlide); };
       } else { el.slideBtn.hidden=true; }
 
       el.diveBreakdown.hidden=true; el.diveBreakdown.innerHTML='';
       el.sol.hidden=false;
-      el.again.textContent='DESCEND';
-      el.again.onclick=function(){ loadFloor(dive.floorIndex+1); };
+      el.again.textContent='DESCEND \u00b7 1 NET ACTION'; el.again.setAttribute('data-move','1');
+      el.again.onclick=function(){ var to=dive.floorIndex+1; move('Descend to floor '+(to+1),function(){ loadFloor(to); }); };
       el.result.hidden=false;
       }
     } else {
@@ -2283,6 +2346,7 @@ function finish(reason){
     reportToSheet(game.target||LEVELS[levelIndexForDV(game.meta.dv)].name,label,n+' of '+total+' sequences',cls,game.meta.rank,game.meta.dv,game.meta.roll);
   }
   paint();
+  netBar();
 }
 
 el.start.addEventListener('click',startGame);
@@ -2304,7 +2368,7 @@ el.pause.addEventListener('click',function(){ if(game) setPaused(!game.paused); 
 el.unplug.addEventListener('click',function(){
   if(!game||!game.running||game.booting) return;
   finish('unplug');
-  if(ctx==='qh'){
+  {
     var u=BPX.jackOut();
     if(u&&u.msg) showSheetLine((el.sheetLine.hidden?'':el.sheetLine.textContent+' ')+u.msg);
   }
@@ -2414,43 +2478,68 @@ function syncSheet(){
   renderLink(); renderRuns(); saveCfg();
 }
 
-/* ---------- backlash damage: roll it and take it off the sheet ---------- */
+/* ---------- backlash damage: rolled and applied automatically ---------- */
 (function(){
   var st=document.createElement('style');
-  st.textContent='#bp-hit{margin:10px 0 0;padding:10px 12px;border:1px solid #ff3ea5;border-left:4px solid #ff3ea5;background:rgba(255,62,165,.1);display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}#bp-hit[hidden]{display:none}#bp-hit .t{flex:1 1 100%;font-size:14px;line-height:1.35}#bp-hit label{font:700 11px Orbitron,sans-serif;letter-spacing:.15em;display:flex;align-items:center;gap:6px}#bp-hit input{width:84px;padding:8px;font:700 16px Rajdhani,sans-serif;text-align:center;background:#1b1030;border:1px solid #6d2fa3;color:#f4e8ff}#bp-hit button{padding:9px 16px;font:700 11px Orbitron,sans-serif;letter-spacing:.15em;background:#ff3ea5;color:#fff;border:0;cursor:pointer}#bp-hit button:disabled{opacity:.45;cursor:default}#bp-hit .r{flex:1 1 100%;font-weight:700;color:#ff9bd2}';
+  st.textContent='#bp-hit{margin:10px 0 0;padding:10px 12px;border:1px solid #ff3ea5;border-left:4px solid #ff3ea5;background:rgba(255,62,165,.1);display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}#bp-hit[hidden]{display:none}#bp-hit .t{flex:1 1 100%;font-size:14px;line-height:1.35}#bp-hit button{padding:9px 16px;font:700 11px Orbitron,sans-serif;letter-spacing:.15em;background:#ff3ea5;color:#fff;border:0;cursor:pointer}#bp-hit button:disabled{opacity:.45;cursor:default}#bp-hit .r{flex:1 1 100%;font-weight:700;color:#ff9bd2}'+
+   '#bp-virus{margin:12px 0 0;padding:12px;border:1px solid #5ee7ff;border-left:4px solid #5ee7ff;background:rgba(94,231,255,.07);display:flex;flex-direction:column;gap:8px}#bp-virus[hidden]{display:none}#bp-virus h4{margin:0;font:700 12px Orbitron,sans-serif;letter-spacing:.2em;color:#5ee7ff}#bp-virus label{font-size:14px;color:#ffd3f5}#bp-virus textarea{width:100%;min-height:74px;padding:9px;font:600 15px Rajdhani,sans-serif;background:#1b1030;border:1px solid #6d2fa3;color:#f4e8ff;resize:vertical}#bp-virus .vr{display:flex;flex-wrap:wrap;gap:10px;align-items:center}#bp-virus button{padding:9px 16px;font:700 11px Orbitron,sans-serif;letter-spacing:.15em;background:#5ee7ff;color:#07040c;border:0;cursor:pointer}#bp-virus button:disabled{opacity:.45;cursor:default}#bp-vmsg{font-weight:700;color:#5ee7ff}';
   document.head.appendChild(st);
   var row=document.createElement('div');row.id='bp-hit';row.hidden=true;
-  row.innerHTML='<span class="t"></span><label>DAMAGE <input id="bp-hitDice" type="text" maxlength="12" aria-label="Damage dice"></label><button type="button" id="bp-hitBtn">TAKE THE HIT</button><span class="r" id="bp-hitRes"></span>';
+  row.innerHTML='<span class="t"></span><span class="r" id="bp-hitRes"></span><button type="button" id="bp-hitBtn"></button>';
   el.resCons.parentNode.insertBefore(row,el.resCons.nextSibling);
-  var tx=row.querySelector('.t'),dice=row.querySelector('#bp-hitDice'),btn=row.querySelector('#bp-hitBtn'),res=row.querySelector('#bp-hitRes');
-  dice.value=store.get('hitdice','3d6');
-  var key='',done=false;
+  var tx=row.querySelector('.t'),btn=row.querySelector('#bp-hitBtn'),res=row.querySelector('#bp-hitRes');
+  var key='',state='idle',hit=null,why='',expr='';
   function setT(n,v){if(n.textContent!==v) n.textContent=v;}
   function iceHits(){return !el.iceLine.hidden && el.iceLine.textContent && !/neutralized/i.test(el.iceLine.textContent);}
   function badFail(){return !el.resCons.hidden && el.resCons.textContent && /(^|\s)bad(\s|$)/.test(el.result.className);}
+  function dmgExpr(){
+    var g=game, idx=levelIndexForDV(g?g.meta.dv:(dive?dive.dv0:10));
+    if(iceHits()&&g&&g.ice){ var n=idx>=5?4:(idx===4?3:2); if(g.ice.rez<g.ice.maxRez) n=Math.max(1,Math.ceil(n/2)); return n+'d6'; }
+    return (idx>=3?2:1)+'d6';
+  }
+  function apply(){
+    expr=dmgExpr(); why=iceHits()?('ICE retaliation'+(game&&game.ice?' \u00b7 '+game.ice.name:'')):'failed breach backlash';
+    var r=BPX.hit(expr,why);
+    if(!r.ok){state='fail';setT(res,r.msg);return;}
+    hit=r; state='done';
+    setT(res,'\u2212'+r.tot+' '+r.label+' ('+r.rs.join(' + ')+') \u00b7 '+r.before+' \u2192 '+r.after+(r.zero?' \u00b7 '+r.zero:''));
+  }
   function refresh(){
     var k=el.result.className+'|'+el.resHead.textContent+'|'+el.iceLine.textContent+'|'+el.resCons.textContent;
-    if(k!==key){key=k;done=false;setT(res,'');}
+    if(k!==key){key=k;state='idle';hit=null;setT(res,'');}
     var show=!el.result.hidden&&(iceHits()||badFail());
     if(row.hidden===show) row.hidden=!show;
     if(!show) return;
+    if(state==='idle') apply();
     var inf=BPX.hpInfo();
-    setT(tx,'This backlash can hurt. Roll the damage to take it off your '+inf.label+(inf.cur!==null?' (now '+inf.cur+(inf.max?' / '+inf.max:'')+')':'')+'. It skips armor. GM\u2019s call.');
-    if(btn.disabled!==done) btn.disabled=done;
-    setT(btn,done?'HIT TAKEN':'TAKE THE HIT');
+    setT(tx,state==='done'?('You took the hit: '+expr+' straight to your '+inf.label+' for '+why+'. Armor skipped.'):state==='waived'?('The GM waived the hit ('+why+').'):('This backlash hurts: '+expr+' straight to your '+inf.label+'.'));
+    setT(btn,state==='done'?'GM WAIVES THE HIT':(state==='waived'?'HIT WAIVED':'TAKE THE HIT'));
+    if(btn.disabled!==(state==='waived')) btn.disabled=(state==='waived');
   }
   [el.result,el.resCons,el.iceLine,el.resHead].forEach(function(n){
     new MutationObserver(refresh).observe(n,{attributes:true,childList:true,characterData:true,subtree:true});
   });
   btn.addEventListener('click',function(){
-    if(done) return;
-    var ex=(dice.value||'3d6').trim(); store.set('hitdice',ex);
-    var r=BPX.hit(ex,iceHits()?'ICE retaliation':'failed breach backlash');
-    if(!r.ok){setT(res,r.msg);return;}
-    done=true;
-    setT(res,'\u2212'+r.tot+' '+r.label+' ('+r.rs.join(' + ')+') \u00b7 '+r.before+' \u2192 '+r.after+(r.zero?' \u00b7 '+r.zero:''));
-    refresh();
+    if(state==='done'&&hit){ BPX.setHp(hit.before); state='waived'; setT(res,'Waived: '+hit.label+' back to '+hit.before+'.'); refresh(); }
+    else if(state!=='waived'){ apply(); refresh(); }
   });
+
+  /* virus payload: what you rewrite on the bottom floor goes to the Roll Log, and so to the party */
+  var vr=document.createElement('div');vr.id='bp-virus';vr.hidden=true;
+  vr.innerHTML='<h4>VIRUS UPLOADED</h4><label for="bp-vtxt">You own the bottom floor. What do you rewrite in the code?</label><textarea id="bp-vtxt" maxlength="280" placeholder="e.g. Unlock every door on this floor, wipe the camera logs and send the vault codes to my fixer."></textarea><div class="vr"><button type="button" id="bp-vbtn">UPLOAD PAYLOAD</button><span id="bp-vmsg" role="status"></span></div>';
+  var acts=el.again.parentNode; acts.parentNode.insertBefore(vr,acts);
+  var vt=vr.querySelector('#bp-vtxt'),vb=vr.querySelector('#bp-vbtn'),vm=vr.querySelector('#bp-vmsg'),vtarget='';
+  function esc(x){return String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  vb.addEventListener('click',function(){
+    var t=vt.value.trim(); if(!t){vm.textContent='Type what you want to change first.';return;}
+    BPX.log('VIRUS UPLOADED \u00b7 '+esc(vtarget||'the system'),esc(t),'REWRITTEN','ok');
+    vt.disabled=true; vb.disabled=true; vm.textContent='Uploaded. Your party sees it in the Roll Log.';
+  });
+  window.__bpVirus={show:function(on,target){
+    vtarget=target||''; if(vr.hidden===on) vr.hidden=!on;
+    if(on&&!vt.disabled&&!vb.disabled) return;
+    if(!on){vt.value='';vt.disabled=false;vb.disabled=false;vm.textContent='';}
+  }};
 })();
 
 /* ---------- open / close: built into the sheet, no second page ---------- */
@@ -2463,6 +2552,7 @@ function openBreach(from,why){
     game=null; dive=null; el.breach.hidden=true; el.setup.hidden=false;
   }
   syncSheet();
+  netBar();
   overlay.hidden=false; document.body.style.overflow='hidden'; overlay.scrollTop=0;
   var f=game?(game.ended?el.again:el.pause):el.start; if(f&&!f.hidden) f.focus();
 }
@@ -2491,6 +2581,8 @@ document.addEventListener('click',function(e){
     if(typeof cfg.cons==='string') el.cons.value=cfg.cons;
     if(typeof cfg.dive==='boolean') el.diveMode.checked=cfg.dive;
   }
+  el.diveMode.checked=true; el.diveMode.disabled=true;
+  (function(){var n=document.createElement('p');n.className='bp-note';n.textContent='Every run is a deep dive and costs 1 Net action. You must be jacked in first, and Unplug jacks you out.';el.msg.parentNode.insertBefore(n,el.msg);})();
   renderSound(); recalcAuto();
 })();
 })();
@@ -2633,7 +2725,7 @@ function render(){
   while(!hit){if(sdx<sdy){sdx+=ddx;mx+=sx;side=0}else{sdy+=ddy;my+=sy;side=1}hit=M[my][mx]}
   var d=side?sdy-ddy:sdx-ddx;zb[x]=d;var lh=(VH/d)|0,top=((VH-lh)/2)|0;
   var wx=side?P.x+d*rx:P.y+d*ry;wx-=Math.floor(wx);var t=hit;if(t==1)t=WT[((mx>>2)+(my>>2)*3)%WT.length];
-  var tx=(wx*64)|0;if((!side&&rx>0)||(side&&ry<0))tx=63-tx;
+  var tx=(wx*64)|0;if((!side&&rx<0)||(side&&ry>0))tx=63-tx;
   g.drawImage(TX[t],tx,0,1,64,x,top,1,lh);
   g.fillStyle="rgba(6,0,16,"+Math.min(.88,d/16+(side?.2:0))+")";g.fillRect(x,top,1,lh)}
  var S=[];
@@ -2680,6 +2772,7 @@ addEventListener("keydown",function(e){keys[e.code]=true;var doomOn=document.get
  if(e.code=="Tab")showMap=!showMap});
 addEventListener("keyup",function(e){keys[e.code]=false;if(e.code=="Space"||e.code=="ControlLeft")fire=false});
 P=newP();gen();
+window.__dmTouch={turn:function(d){if(st=="play")P.a+=d},get P(){return P},get st(){return st}};
 var last=performance.now();
 (function loop(now){requestAnimationFrame(loop);var dt=Math.min(.05,(now-last)/1000);last=now;var doomOn=document.getElementById("doom-overlay")&&!document.getElementById("doom-overlay").hidden;if(doomOn){if(st=="play")update(dt);render()}})(last);
 })();
@@ -2812,7 +2905,7 @@ if(!dm&&Q("#p-dm").classList.contains("on"))setTab("char");
 /* PARTY: everyone who has the sheet open in the same room sees each other's rolls live (public ntfy.sh relay, no account). */
 (function(){
 var HOST="https://ntfy.sh/",btn=document.getElementById("mptog"),m=document.createElement("div"),
-cid=Math.random().toString(36).slice(2,10),MP={st:"off",room:"",name:"",people:{},msg:"",bad:false,rx:false,tr:null},hbT=null,seen={},T=window.__MP_TRANSPORT;
+cid=Math.random().toString(36).slice(2,10),MP={st:"off",room:"",name:"",people:{},msg:"",bad:false,rx:false,tr:null,diag:[]},hbT=null,seen={},T=window.__MP_TRANSPORT;
 m.id="mpm";document.body.appendChild(m);
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function dec(s){var t=document.createElement("textarea");t.innerHTML=String(s==null?"":s);return t.value}
@@ -2823,16 +2916,37 @@ function topic(){var r=slug(MP.room).slice(0,30);return "cpsanct-"+(r?"t-"+r:"s-
 function myName(){var h=document.querySelector('[data-k="handle"]');return(MP.name||store("name")||(h&&h.value)||"Runner").trim().slice(0,24)||"Runner"}
 function ntfy(tp){var ev;return{
  pub:function(o){try{fetch(HOST+tp,{method:"POST",body:JSON.stringify(o)}).catch(function(){})}catch(e){}},
- sub:function(cb,st){ev=new EventSource(HOST+tp+"/sse");ev.onopen=function(){st(true)};ev.onerror=function(){st(false)};
-  ev.onmessage=function(e){try{var j=JSON.parse(e.data);if(j.event==="message"&&j.message)cb(JSON.parse(j.message),j.id)}catch(x){}}},
+ sub:function(cb,st){ev=new EventSource(HOST+tp+"/sse");ev.onopen=function(){st(true,"ntfy.sh: connected")};ev.onerror=function(){st(false,"ntfy.sh: no connection")};
+  ev.onmessage=function(e){try{var j=JSON.parse(e.data);if(j.event==="message"&&j.message)cb(JSON.parse(j.message))}catch(x){}}},
  close:function(){if(ev)ev.close()},
  bye:function(o){try{navigator.sendBeacon(HOST+tp,JSON.stringify(o))}catch(e){}}}}
+
+var BROKERS=["wss://broker.emqx.io:8084/mqtt","wss://broker.hivemq.com:8884/mqtt","wss://test.mosquitto.org:8081/mqtt"];
+function mqtt(tp){var ws=null,i=0,dead=false,pt=null,rt=null,cbs,stt,buf=new Uint8Array(0),up=false,te=new TextEncoder(),td=new TextDecoder(),top="cpsanct/"+tp;
+ function str(s){var b=te.encode(s);return[b.length>>8,b.length&255].concat(Array.from(b))}
+ function pkt(h,body){var o=[],n=body.length;do{var d=n%128;n=Math.floor(n/128);if(n>0)d|=128;o.push(d)}while(n>0);return new Uint8Array([h].concat(o,body))}
+ function retry(){clearTimeout(rt);if(!dead)rt=setTimeout(open,1500)}
+ function open(){if(dead)return;var url=BROKERS[i%BROKERS.length];i++;var w;try{w=new WebSocket(url,"mqtt")}catch(e){return retry()}
+  ws=w;w.binaryType="arraybuffer";buf=new Uint8Array(0);
+  w.onopen=function(){w.send(pkt(0x10,[0,4,77,81,84,84,4,2,0,30].concat(str("cps"+cid+Math.random().toString(36).slice(2,6)))))};
+  w.onmessage=function(e){var n=new Uint8Array(e.data),b=new Uint8Array(buf.length+n.length);b.set(buf);b.set(n,buf.length);buf=b;parse(w,url)};
+  w.onclose=w.onerror=function(){if(ws===w){ws=null;clearInterval(pt);up=false;stt(false,"mqtt: no connection");retry()}}}
+ function parse(w,url){for(;;){if(buf.length<2)return;var n=0,m=1,p=1,b;do{if(p>=buf.length||p>4)return;b=buf[p++];n+=(b&127)*m;m*=128}while(b&128);if(buf.length<p+n)return;
+   var h=buf[0],body=buf.slice(p,p+n);buf=buf.slice(p+n);var t=h>>4;
+   if(t===2){if(body[1]===0)w.send(pkt(0x82,[0,1].concat(str(top),[0])));else{try{w.close()}catch(e){}}}
+   else if(t===9){up=true;stt(true,"mqtt: connected ("+url.split("/")[2].split(":")[0]+")");clearInterval(pt);pt=setInterval(function(){if(ws&&ws.readyState===1)ws.send(new Uint8Array([0xC0,0]))},20000)}
+   else if(t===3){var tl=(body[0]<<8)|body[1],q=(h>>1)&3,s=2+tl+(q?2:0);try{cbs(JSON.parse(td.decode(body.slice(s))))}catch(e){}}}}
+ return{pub:function(o){if(ws&&up&&ws.readyState===1)try{ws.send(pkt(0x30,str(top).concat(Array.from(te.encode(JSON.stringify(o))))))}catch(e){}},
+  sub:function(cb,st){cbs=cb;stt=st;open()},close:function(){dead=true;clearInterval(pt);clearTimeout(rt);up=false;if(ws){try{ws.close()}catch(e){}}ws=null}}}
+function multi(tp){var A=ntfy(tp),B=mqtt(tp),ok=[false,false];return{pub:function(o){A.pub(o);B.pub(o)},
+ sub:function(cb,st){A.sub(cb,function(v,l){ok[0]=v;MP.diag[0]=l;st(ok[0]||ok[1])});B.sub(cb,function(v,l){ok[1]=v;MP.diag[1]=l;st(ok[0]||ok[1])})},
+ close:function(){A.close();B.close()},bye:function(o){A.bye(o);B.pub(o)}}}
 /* roll hook */
 var _lr=window.logRoll;
-window.logRoll=function(l,t,n,c){_lr(l,t,n,c);if(MP.rx||MP.st!=="on"||c==="bad"||n==="—")return;send({k:"roll",l:String(l).slice(0,120),t:String(t).slice(0,300),n:String(n).slice(0,40),x:c||""})};
+window.logRoll=function(l,t,n,c){_lr(l,t,n,c);if(MP.rx||MP.st!=="on"||n==="—"||n==="✗")return;send({k:"roll",l:String(l).slice(0,120),t:String(t).slice(0,300),n:String(n).slice(0,40),x:c||""})};
 function showRoll(from,d){var cls=String(d.x||"").replace(/[^a-z ]/g,"").slice(0,20);MP.rx=true;try{_lr("◈ "+esc(from)+" · "+clean(d.l,120),clean(d.t,300),clean(d.n,40),cls+" remote")}finally{MP.rx=false}}
-function send(o){if(!MP.tr)return;o.c=cid;o.p=MP.name;o.ts=Date.now();MP.tr.pub(o)}
-function recv(d,id){if(!d||typeof d!=="object"||d.c===cid||!d.c)return;if(id){if(seen[id])return;seen[id]=1}
+function send(o){if(!MP.tr)return;o.i=Math.random().toString(36).slice(2,10);o.c=cid;o.p=MP.name;o.ts=Date.now();MP.tr.pub(o)}
+function recv(d){if(!d||typeof d!=="object"||d.c===cid||!d.c)return;if(d.i){if(seen[d.i])return;if(Object.keys(seen).length>800)seen={};seen[d.i]=1}
  var nm=dec(d.p||"Runner").slice(0,24)||"Runner",c=String(d.c).slice(0,12);
  if(d.k==="bye"){delete MP.people[c];ui();return}
  if(d.k!=="hb"&&d.k!=="hello"&&d.k!=="roll")return;
@@ -2842,8 +2956,8 @@ function recv(d,id){if(!d||typeof d!=="object"||d.c===cid||!d.c)return;if(id){if
  if(isNew||d.k==="hello")ui()}
 function prune(){var now=Date.now(),ch=false;Object.keys(MP.people).forEach(function(k){if(now-MP.people[k].t>55000){delete MP.people[k];ch=true}});if(ch)ui()}
 function connect(){stop();MP.name=myName();store("name",MP.name);store("room",MP.room);store("on","1");
- MP.tr=(T||ntfy)(topic());MP.st="wait";MP.msg="Connecting…";MP.bad=false;ui();
- MP.tr.sub(recv,function(ok){if(ok){if(MP.st!=="on"){MP.st="on";MP.msg="";MP.bad=false;send({k:"hello"})}}else if(MP.st==="on"||MP.st==="wait"){MP.st="wait";MP.msg="Reconnecting… check your internet.";MP.bad=true}ui()});
+ MP.tr=(T||multi)(topic());MP.st="wait";MP.msg="Connecting…";MP.bad=false;MP.diag=[];ui();var mine=MP.tr;setTimeout(function(){if(MP.tr===mine&&MP.st==="wait"){MP.msg="Can't reach the relay servers. A VPN, firewall, school or work network, or an ad blocker (Brave Shields, uBlock) may be blocking them. Try another network or switch the blocker off for this site.";MP.bad=true;ui()}},9000);
+ MP.tr.sub(recv,function(ok){if(ok){if(MP.st!=="on"){MP.st="on";MP.msg="";MP.bad=false;send({k:"hello"})}}else if(MP.st==="on"||MP.st==="wait"){MP.st="wait";MP.msg="Reconnecting… check your internet.";MP.bad=true}else if(ok){MP.msg=""}ui()});
  clearInterval(hbT);hbT=setInterval(function(){if(MP.st==="on"){send({k:"hb"});prune()}},20000)}
 function stop(){clearInterval(hbT);if(MP.tr){try{MP.tr.close()}catch(e){}}MP.tr=null;MP.people={};MP.st="off"}
 function leave(){if(MP.tr&&MP.tr.bye&&MP.st==="on")MP.tr.bye({k:"bye",c:cid,p:MP.name});stop();store("on","0");MP.msg="Disconnected.";MP.bad=false;ui()}
@@ -2855,7 +2969,7 @@ function render(){if(!m.classList.contains("on"))return;
  '<label>YOUR NAME<input class="fi" id="mpn" value="'+esc(myName())+'" maxlength="24"></label>'+
  '<label>TABLE NAME (OPTIONAL)<input class="fi" id="mpc" value="'+esc(MP.room)+'" maxlength="30" placeholder="blank = everyone on this site"></label>'+
  '<div class="row"><button class="g" data-mp="go">'+(live?"UPDATE":"CONNECT")+'</button>'+(live?'<button class="g" data-mp="leave">DISCONNECT</button>':'')+'</div>'+
- '<div class="st'+(MP.bad?" bad":"")+'">'+esc(MP.msg||(MP.st==="on"?"Live. Rolls you make appear for everyone below.":""))+'</div>';
+ '<div class="st'+(MP.bad?" bad":"")+'">'+esc(MP.msg||(MP.st==="on"?"Live. Rolls you make appear for everyone below.":""))+'</div>'+(MP.diag.length?'<small>'+esc(MP.diag.filter(Boolean).join(" · "))+'</small>':'');
  if(MP.st==="on")h+='<ul>'+list().map(function(x){return'<li><span>'+esc(x.n)+(x.me?" (you)":"")+'</span></li>'}).join("")+'</ul>';
  h+='<small>Everyone with this page open and the same table name sees every roll live, marked with the roller\'s name. Use a table name (like "friday-crew") to keep your group separate from other visitors. Only roll results are shared.</small></div>';
  m.innerHTML=h}
@@ -2868,5 +2982,115 @@ MP.room=store("room")||"";MP.name=store("name")||"";ui();
 if(store("on")!=="0")connect();
 })();
 
+</script>
+
+<style id="mobx">
+#dm-touch{display:none}
+@media(max-width:760px){
+html{-webkit-text-size-adjust:100%}
+html body{padding-bottom:calc(74px + env(safe-area-inset-bottom))!important;overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
+html body button,html body select,html body input,html body label,html body summary{touch-action:manipulation}
+html body input,html body select,html body textarea{font-size:16px!important}
+html body .mini,html body .ctl button{min-height:38px;min-width:38px}
+/* bottom nav: one swipeable row with icons */
+html body .tabs{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden;scroll-snap-type:x proximity;gap:2px!important;padding:4px 4px calc(4px + env(safe-area-inset-bottom))!important}
+html body .tab{flex:0 0 23%!important;min-width:78px;min-height:54px!important;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:4px 2px!important;font-size:8px!important;letter-spacing:.05em!important;scroll-snap-align:center;clip-path:none!important;border-radius:6px;white-space:nowrap;overflow:visible!important}
+html body .tab:before{content:"◈";font-size:18px;line-height:1;letter-spacing:0}
+html body .tab[data-tab=role]:before{content:"★"}
+html body .tab[data-tab=weap]:before{content:"✦"}
+html body .tab[data-tab=inv]:before{content:"▣"}
+html body .tab[data-tab=cyber]:before{content:"⚙"}
+html body .tab[data-tab=life]:before{content:"♥"}
+html body .tab[data-tab=notes]:before{content:"✎"}
+html body .tab[data-tab=dm]:before{content:"♛"}
+html body .log{bottom:calc(66px + env(safe-area-inset-bottom))!important}
+/* compact holocall */
+html body .holo{flex:0 0 118px!important;padding:5px!important;align-self:flex-start}
+html body .holo .hh{font-size:8px;letter-spacing:.14em;margin-bottom:4px}
+html body .holo .hh em,html body .holo .hf span{display:none}
+html body .holo .hv{aspect-ratio:3/4}
+html body .holo .hph{font-size:9px;letter-spacing:.15em}html body .holo .hph small{display:none}
+html body .holo .hsw{flex-wrap:wrap;gap:4px}
+/* inventory + cyberware as cards */
+html body #inv,html body #cyt{display:block}
+html body #inv tr:first-child,html body #cyt tr:first-child{display:none}
+html body #inv tr,html body #cyt tr{display:grid;border:1px solid var(--line);margin:0 0 8px;background:color-mix(in srgb,var(--field) 80%,transparent)}
+html body #cyt tr[hidden]{display:none!important}
+html body #inv td,html body #cyt td{display:block;border:0!important;min-width:0}
+html body #inv td:before,html body #cyt td:before{display:block;font:700 8px "Orbitron",sans-serif;letter-spacing:.15em;color:var(--mute);padding:5px 8px 0}
+html body #inv td input,html body #inv td select,html body #cyt td input,html body #cyt td select{min-height:40px;width:calc(100% - 16px)!important;margin:3px 8px 8px;background:var(--field)!important;border:1px solid var(--line)!important;border-radius:0}
+html body #inv tr{grid-template-columns:76px 1fr}
+html body #inv td:nth-child(1){grid-column:1/-1}
+html body #inv td:nth-child(2){grid-column:1}
+html body #inv td:nth-child(3){grid-column:2}
+html body #inv td:nth-child(4){grid-column:1/-1}
+html body #inv td:nth-child(1):before{content:"ITEM"}html body #inv td:nth-child(2):before{content:"QTY"}html body #inv td:nth-child(3):before{content:"TYPE"}html body #inv td:nth-child(4):before{content:"NOTES"}
+html body #cyt tr{grid-template-columns:repeat(6,1fr)}
+html body #cyt td:nth-child(1){grid-column:1/7}
+html body #cyt td:nth-child(2){grid-column:1/5}
+html body #cyt td:nth-child(3){grid-column:5/7}
+html body #cyt td:nth-child(4){grid-column:1/5}
+html body #cyt td:nth-child(5){grid-column:5/7}
+html body #cyt td:nth-child(6){grid-column:1/3}
+html body #cyt td:nth-child(7){grid-column:3/5}
+html body #cyt td:nth-child(8){grid-column:5/7;display:flex;align-items:flex-end;padding:0 6px 4px}
+html body #cyt td:nth-child(8) button{width:100%;min-height:40px}
+html body #cyt td:nth-child(9){grid-column:1/7}
+html body #cyt td:nth-child(1):before{content:"CYBERWARE"}html body #cyt td:nth-child(2):before{content:"LOCATION"}html body #cyt td:nth-child(3):before{content:"SLOTS"}html body #cyt td:nth-child(4):before{content:"BONUS TO"}html body #cyt td:nth-child(5):before{content:"BONUS"}html body #cyt td:nth-child(6):before{content:"HL DICE"}html body #cyt td:nth-child(7):before{content:"HUMANITY LOSS"}html body #cyt td:nth-child(8):before{content:none}html body #cyt td:nth-child(9):before{content:"NOTES"}
+}
+@media(pointer:coarse){
+#doom-overlay:not([hidden]) #dm-touch{display:block;position:absolute;inset:0;z-index:5;pointer-events:none;-webkit-user-select:none;user-select:none;touch-action:none}
+#dm-touch>*{pointer-events:auto;touch-action:none}
+#dm-look{position:absolute;right:0;top:0;bottom:0;width:58%}
+#dm-stick{position:absolute;left:4%;bottom:7%;width:132px;height:132px;border-radius:50%;border:2px solid #ff3ea5aa;background:#ff3ea514}
+#dm-stick i{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:#ff3ea5cc;box-shadow:0 0 14px #ff3ea5}
+#dm-touch button{position:absolute;border-radius:50%;border:2px solid #8fe9ff;background:#0b0618cc;color:#8fe9ff;font:700 11px Orbitron,Arial,sans-serif;letter-spacing:.08em;padding:0}
+#dm-fire{right:5%;bottom:9%;width:92px;height:92px;border-color:#ff3ea5!important;color:#ff9bd2!important;font-size:14px!important}
+#dm-use{right:27%;bottom:6%;width:62px;height:62px}
+#dm-wp{right:5%;bottom:36%;width:62px;height:62px}
+#dm-hint{position:absolute;left:0;right:0;top:46px;text-align:center;font:700 10px Orbitron,Arial,sans-serif;letter-spacing:.2em;color:#8fe9ffaa;pointer-events:none}
+}
+#dm-touch.off{display:none!important}
+@media(pointer:coarse) and (orientation:landscape){#dm-hint{display:none}}
+@media(pointer:fine){#dm-hint{display:none}}
+</style>
+
+<script>
+(function(){
+/* keep the active bottom tab in view */
+function reveal(){var t=document.querySelector('.tab.on');if(t&&t.scrollIntoView&&matchMedia('(max-width:760px)').matches)try{t.scrollIntoView({inline:'center',block:'nearest'})}catch(e){}}
+document.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('[data-tab]'))setTimeout(reveal,30)});
+setTimeout(reveal,400);
+/* Doom touch controls: left stick moves, right side drags to turn, buttons fire/use/swap */
+var ov=document.getElementById('doom-overlay');if(!ov)return;
+var box=document.createElement('div');box.id='dm-touch';
+box.innerHTML='<div id="dm-hint">ROTATE YOUR PHONE FOR A BIGGER VIEW</div><div id="dm-look"></div><div id="dm-stick"><i></i></div><button id="dm-fire" type="button">FIRE</button><button id="dm-use" type="button">USE</button><button id="dm-wp" type="button">GUN</button>';
+ov.appendChild(box);
+function cap(el,id){try{el.setPointerCapture(id)}catch(e){}}
+function key(c,d){window.dispatchEvent(new KeyboardEvent(d?'keydown':'keyup',{code:c,key:c,bubbles:true,cancelable:true}))}
+var held={};function hold(c,on){if(!!held[c]===on)return;held[c]=on;key(c,on)}
+function drv(){return window.__dmTouch}
+var st=document.getElementById('dm-stick'),knob=st.firstElementChild,sid=null;
+function stick(e){var r=st.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,m=r.width/2,l=Math.hypot(dx,dy)||1,k=Math.min(1,l/m);
+ var ux=dx/l*k,uy=dy/l*k;knob.style.transform='translate('+ux*m*.6+'px,'+uy*m*.6+'px)';
+ hold('KeyW',uy<-.35);hold('KeyS',uy>.35);hold('KeyA',ux<-.35);hold('KeyD',ux>.35)}
+function stickEnd(){sid=null;knob.style.transform='';['KeyW','KeyA','KeyS','KeyD'].forEach(function(c){hold(c,false)})}
+st.addEventListener('pointerdown',function(e){sid=e.pointerId;cap(st,e.pointerId);stick(e);e.preventDefault()});
+st.addEventListener('pointermove',function(e){if(e.pointerId===sid)stick(e)});
+['pointerup','pointercancel','lostpointercapture'].forEach(function(n){st.addEventListener(n,function(e){if(e.pointerId===sid)stickEnd()})});
+var lk=document.getElementById('dm-look'),lid=null,lx=0;
+lk.addEventListener('pointerdown',function(e){lid=e.pointerId;lx=e.clientX;cap(lk,e.pointerId);e.preventDefault()});
+lk.addEventListener('pointermove',function(e){if(e.pointerId!==lid)return;var P=drv();if(P)P.turn((e.clientX-lx)*.009);lx=e.clientX});
+['pointerup','pointercancel'].forEach(function(n){lk.addEventListener(n,function(e){if(e.pointerId===lid)lid=null})});
+var f=document.getElementById('dm-fire');
+f.addEventListener('pointerdown',function(e){cap(f,e.pointerId);hold('Space',true);e.preventDefault()});
+['pointerup','pointercancel'].forEach(function(n){f.addEventListener(n,function(){hold('Space',false)})});
+function tap(id,c){var b=document.getElementById(id);b.addEventListener('pointerdown',function(e){key(c,true);e.preventDefault()});b.addEventListener('pointerup',function(){key(c,false)});b.addEventListener('pointercancel',function(){key(c,false)})}
+tap('dm-use','KeyE');tap('dm-wp','KeyQ');
+/* controls only while playing: hide them over the title / game-over / pause screen so a tap can start the game */
+var ovs=document.getElementById('ov');
+function sync(){var shown=ovs&&getComputedStyle(ovs).display!=='none';box.classList.toggle('off',!!shown);if(shown){stickEnd();hold('Space',false)}}
+if(ovs){new MutationObserver(sync).observe(ovs,{attributes:true,attributeFilter:['style','class']});new MutationObserver(sync).observe(ov,{attributes:true,attributeFilter:['hidden']});sync()}
+})();
 </script>
 </body></html>
