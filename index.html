@@ -3112,6 +3112,12 @@ html body .holo .hsw{flex-wrap:wrap;gap:6px}}</style>
 .gm-at{font-size:12px;color:var(--mute);margin:6px 0 0}.gm-at a{color:var(--soft)}
 #gmList{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}.gl{display:flex;flex-direction:column;align-items:flex-start;text-align:left;background:var(--field);color:var(--ink);border:1px solid var(--line);border-left:3px solid var(--p2);padding:7px 10px;clip-path:none;font:600 15px "Rajdhani",sans-serif}.gl.on{border-color:var(--hot);background:var(--deep4)}.gl span{font-size:13px;color:var(--mute)}
 #gmDet label{display:block;font:600 10px "Orbitron",sans-serif;letter-spacing:.15em;color:var(--mute);margin:0 0 8px}#gmDet textarea{min-height:70px}#gmDet h4{margin:0 0 6px;font:700 15px "Orbitron",sans-serif;color:var(--p2)}.gm-e{color:var(--mute)}
+.gm{width:28px!important;height:28px!important;margin:-14px 0 0 -14px!important;padding:0!important;background:none!important;border:0!important;transform:none!important;max-width:none!important;overflow:visible!important;--c:var(--p2)}
+.gm:after{display:none!important}.gm.active{--c:#5dffa0}.gm.done{--c:#8a8a9a}.gm.sel{outline:0!important}
+.gm i{position:absolute;left:7px;top:7px;width:14px;height:14px;box-sizing:border-box;border-radius:50%;background:var(--c);border:2px solid #000;box-shadow:0 0 0 2px #fffc,0 0 10px var(--c)}
+.gm.sel i{box-shadow:0 0 0 3px var(--hot),0 0 12px var(--c)}
+.gm span{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);padding:2px 7px;font:700 11px "Orbitron",sans-serif;letter-spacing:.06em;background:var(--c);color:#000;border:1px solid #000;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis}
+.gm.hid{opacity:.6}
 </style>
 <script>
 (function(){
@@ -3122,7 +3128,7 @@ const pan=$("#gmView"),layer=$("#gmTiles"),mk=$("#gmMarks"),isDM=()=>document.do
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const ld=k=>{try{const v=JSON.parse(localStorage.getItem(k)||"[]");return Array.isArray(v)?v:[]}catch(e){return[]}},sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 let mine=ld("cps_gigs"),inc=ld("cps_gigs_in"),z=14,c={x:2**14*TS/2,y:2**14*TS/2},imgs=new Map(),sel=null,placing=false,raf=0,pt=null;
-const list=()=>isDM()?mine:inc,cur=()=>list().find(g=>g.id===sel);
+const list=()=>isDM()?mine:inc.concat(mine.filter(g=>g.rev&&!inc.some(x=>x.id===g.id))),cur=()=>list().find(g=>g.id===sel);
 const proj=(la,lo,l=z)=>{const s=2**l*TS,r=la*Math.PI/180;return{x:(lo+180)/360*s,y:(1-Math.asinh(Math.tan(r))/Math.PI)/2*s}};
 const unp=p=>{const s=2**z*TS;return{la:Math.atan(Math.sinh(Math.PI*(1-2*p.y/s)))*180/Math.PI,lo:p.x/s*360-180}};
 const sched=()=>{if(!raf)raf=requestAnimationFrame(draw)};
@@ -3133,7 +3139,7 @@ function draw(){raf=0;const W=pan.clientWidth,H=pan.clientHeight;if(!W)return;
   if(!i){i=new Image();i.className="gt";i.alt="";i.draggable=false;const u=(T)=>T.replace("{z}",z).replace("{x}",x).replace("{y}",y);let tr=0;i.onerror=()=>{if(tr<LOCAL.length+REMOTE.length-1){tr++;i.src=u(LOCAL.concat(REMOTE)[tr])}else i.style.visibility="hidden"};i.src=u(LOCAL[0]);layer.append(i);imgs.set(k,i)}
   i.style.transform="translate("+Math.round(x*TS-c.x+W/2)+"px,"+Math.round(y*TS-c.y+H/2)+"px)"}
  for(const[k,i]of imgs)if(!keep.has(k)){i.remove();imgs.delete(k)}
- mk.textContent="";list().forEach(g=>{if(g.la==null)return;const p=proj(g.la,g.lo),m=document.createElement("button");m.type="button";m.className="gm "+g.st+(g.id===sel?" sel":"")+(g.rev||!isDM()?"":" hid");m.style.left=(p.x-c.x+W/2)+"px";m.style.top=(p.y-c.y+H/2)+"px";m.textContent=g.t||"Gig";m.onclick=e=>{e.stopPropagation();sel=g.id;render()};mk.append(m)})}
+ mk.textContent="";list().forEach(g=>{if(g.la==null)return;const p=proj(g.la,g.lo),m=document.createElement("button");m.type="button";m.className="gm "+g.st+(g.id===sel?" sel":"")+(g.rev||!isDM()?"":" hid");m.style.left=(p.x-c.x+W/2)+"px";m.style.top=(p.y-c.y+H/2)+"px";if(/^#[0-9a-f]{6}$/i.test(g.col))m.style.setProperty("--c",g.col);m.innerHTML="<i></i><span>"+esc(g.t||"Gig")+"</span>";m.onclick=e=>{e.stopPropagation();sel=g.id;render()};mk.append(m)})}
 function zoom(n){n=Math.max(ZMIN,Math.min(ZMAX,n));if(n===z)return;const f=2**(n-z);c.x*=f;c.y*=f;z=n;sched()}
 function fly(g){if(g.la==null)return;z=16;c=proj(g.la,g.lo,16);sched()}
 pan.addEventListener("pointerdown",e=>{pan.setPointerCapture(e.pointerId);(pan._p=pan._p||new Map()).set(e.pointerId,{x:e.clientX,y:e.clientY});pan._m=0;pan._d=0});
@@ -3149,13 +3155,13 @@ pan.addEventListener("keydown",e=>{const k=e.key,s=80;if(k==="+"||k==="=")zoom(z
 $("#gmIn").onclick=()=>zoom(z+1);$("#gmOut").onclick=()=>zoom(z-1);$("#gmFit").onclick=()=>{z=14;c={x:2**14*TS/2,y:2**14*TS/2};sched()};
 $("#gmTh").onclick=e=>{const f=layer.classList.toggle("flesh");e.target.textContent=f?"FLESH":"CHROME"};
 /* gigs */
-const PUB=g=>({id:g.id,t:g.t,cl:g.cl,d:g.d,p:g.p,b:g.b,st:g.st,la:g.la,lo:g.lo});
+const PUB=g=>({col:g.col||"",id:g.id,t:g.t,cl:g.cl,d:g.d,p:g.p,b:g.b,st:g.st,la:g.la,lo:g.lo});
 function pub(g){const s=window.__partySend;if(s)s({k:"gig",g:g.rev?PUB(g):{id:g.id,rm:1}})}
 let pt2=0;function save(g){sv("cps_gigs",mine);if(g&&g.rev){clearTimeout(pt2);pt2=setTimeout(()=>pub(g),500)}render()}
 function render(){const L=list(),dm=isDM();
  $("#gmList").innerHTML=(dm?'<button class="g" data-a="new">+ NEW GIG</button>':"")+(L.length?L.map(g=>'<button class="gl'+(g.id===sel?" on":"")+'" data-id="'+esc(g.id)+'"><b>'+esc(g.t||"Untitled gig")+'</b><span>'+esc(g.d||"No location")+" · €$ "+esc(g.p||0)+" · "+(dm&&!g.rev?"HIDDEN":esc(g.st).toUpperCase())+(g.paid?" · PAID":g.acc?" · ACCEPTED":"")+"</span></button>").join(""):'<p class="gm-e">'+(dm?"No gigs yet. Create one, drop it on the map, then reveal it to the party.":"No gigs yet. Your fixer will send one.")+"</p>");
  const g=cur();if(!g){$("#gmDet").innerHTML="";sched();return}
- $("#gmDet").innerHTML=dm?'<label>TITLE<input class="fi" data-f="t" maxlength="60" value="'+esc(g.t)+'"></label><label>CLIENT<input class="fi" data-f="cl" maxlength="40" value="'+esc(g.cl)+'"></label><label>LOCATION / DISTRICT<input class="fi" data-f="d" maxlength="40" value="'+esc(g.d)+'"></label><label>PAY (€$)<input class="fi" data-f="p" type="number" min="0" value="'+esc(g.p)+'"></label><label>BRIEF (players see this)<textarea class="fi" data-f="b" maxlength="500">'+esc(g.b)+'</textarea></label><label>DM NOTES (never sent)<textarea class="fi" data-f="x">'+esc(g.x)+'</textarea></label><label>STATUS<select class="fi" data-f="st">'+["open","active","done"].map(s=>'<option'+(g.st===s?" selected":"")+">"+s+"</option>").join("")+'</select></label><div class="ctl"><button class="mini" data-a="place">'+(g.la==null?"PLACE ON MAP":"MOVE PIN")+'</button><button class="mini" data-a="fly">FLY TO</button><button class="mini" data-a="rev">'+(g.rev?"HIDE FROM PARTY":"REVEAL TO PARTY")+'</button><button class="mini" data-a="del">DELETE</button></div>'
+ $("#gmDet").innerHTML=dm?'<label>TITLE<input class="fi" data-f="t" maxlength="60" value="'+esc(g.t)+'"></label><label>CLIENT<input class="fi" data-f="cl" maxlength="40" value="'+esc(g.cl)+'"></label><label>LOCATION / DISTRICT<input class="fi" data-f="d" maxlength="40" value="'+esc(g.d)+'"></label><label>PAY (€$)<input class="fi" data-f="p" type="number" min="0" value="'+esc(g.p)+'"></label><label>BRIEF (players see this)<textarea class="fi" data-f="b" maxlength="500">'+esc(g.b)+'</textarea></label><label>DM NOTES (never sent)<textarea class="fi" data-f="x">'+esc(g.x)+'</textarea></label><label>PIN COLOR<input class="fi" data-f="col" type="color" value="'+esc(g.col||"#ff9a1f")+'" style="height:38px;padding:2px"></label><label>STATUS<select class="fi" data-f="st">'+["open","active","done"].map(s=>'<option'+(g.st===s?" selected":"")+">"+s+"</option>").join("")+'</select></label><div class="ctl"><button class="mini" data-a="place">'+(g.la==null?"PLACE ON MAP":"MOVE PIN")+'</button><button class="mini" data-a="fly">FLY TO</button><button class="mini" data-a="rev">'+(g.rev?"HIDE FROM PARTY":"REVEAL TO PARTY")+'</button><button class="mini" data-a="del">DELETE</button></div>'
  :'<h4>'+esc(g.t)+'</h4><p><b>Client</b> '+esc(g.cl||"—")+'<br><b>Where</b> '+esc(g.d||"—")+'<br><b>Pay</b> €$ '+esc(g.p||0)+'<br><b>Status</b> '+esc(g.st)+'</p><p>'+esc(g.b)+'</p><div class="ctl"><button class="mini" data-a="fly">FLY TO</button>'+(g.acc?"":'<button class="mini" data-a="acc">ACCEPT GIG</button>')+(g.acc&&g.st==="done"&&!g.paid?'<button class="mini" data-a="pay">COLLECT PAY</button>':"")+"</div>";
  sched()}
 document.addEventListener("click",e=>{const t=e.target.closest("#gmList,#gmDet,[data-tab],#dmtog");if(!t)return;
@@ -3167,16 +3173,16 @@ document.addEventListener("click",e=>{const t=e.target.closest("#gmList,#gmDet,[
  if(a==="place"){placing=true;$("#gmBan").hidden=false}else if(a==="fly")fly(g);
  else if(a==="rev"){g.rev=g.rev?0:1;sv("cps_gigs",mine);pub(g);render()}
  else if(a==="del"){if(!confirm("Delete this gig?"))return;if(g.rev){g.rev=0;pub(g)}mine=mine.filter(x=>x!==g);sel=null;sv("cps_gigs",mine);render()}
- else if(a==="acc"){g.acc=1;sv("cps_gigs_in",inc);render()}
+ else if(a==="acc"){g.acc=1;sv("cps_gigs_in",inc);sv("cps_gigs",mine);render()}
  else if(a==="pay"&&!g.paid){const el=document.querySelector('[data-k="eb"]');if(!el)return;el.value=(+el.value||0)+(+g.p||0);["input","change"].forEach(n=>el.dispatchEvent(new Event(n,{bubbles:true})));g.paid=1;sv("cps_gigs_in",inc);try{window.logRoll("GIG PAID · "+g.t,"€$ "+g.p+" added to Eurobucks","+"+g.p,"")}catch(x){}render()}});
 $("#gmDet").addEventListener("input",e=>{const f=e.target.dataset.f,g=cur();if(!f||!g)return;g[f]=f==="p"?Math.max(0,+e.target.value||0):e.target.value;sv("cps_gigs",mine);if(g.rev){clearTimeout(pt2);pt2=setTimeout(()=>pub(g),600)}
  $("#gmList").querySelector(".gl.on b")&&($("#gmList").querySelector(".gl.on b").textContent=g.t||"Untitled gig");sched()});
 /* party relay: players receive revealed gigs, DM re-sends them to anyone who joins */
 const S=(v,n)=>String(v==null?"":v).slice(0,n);
 window.addEventListener("cps:gig",e=>{const d=e.detail&&e.detail.g;if(!d||isDM()||typeof d.id!=="string")return;const id=S(d.id,12);
- if(d.rm)inc=inc.filter(g=>g.id!==id);else{const n={id,t:S(d.t,60),cl:S(d.cl,40),d:S(d.d,40),p:Math.max(0,+d.p||0),b:S(d.b,500),st:["open","active","done"].includes(d.st)?d.st:"open",la:Number.isFinite(+d.la)?+d.la:null,lo:Number.isFinite(+d.lo)?+d.lo:null,rev:1},o=inc.find(g=>g.id===id);if(o)Object.assign(o,n);else inc.push(n)}
+ if(d.rm)inc=inc.filter(g=>g.id!==id);else{const n={col:/^#[0-9a-f]{6}$/i.test(d.col)?d.col:"",id,t:S(d.t,60),cl:S(d.cl,40),d:S(d.d,40),p:Math.max(0,+d.p||0),b:S(d.b,500),st:["open","active","done"].includes(d.st)?d.st:"open",la:Number.isFinite(+d.la)?+d.la:null,lo:Number.isFinite(+d.lo)?+d.lo:null,rev:1},o=inc.find(g=>g.id===id);if(o)Object.assign(o,n);else inc.push(n)}
  sv("cps_gigs_in",inc);const t=$('[data-tab="map"]');if(t&&!t.classList.contains("on"))t.textContent="MAP ●";render()});
-window.addEventListener("cps:hello",()=>{if(isDM())mine.filter(g=>g.rev).forEach((g,i)=>setTimeout(()=>pub(g),400*i+800))});
+window.addEventListener("cps:hello",()=>{mine.filter(g=>g.rev).forEach((g,i)=>setTimeout(()=>pub(g),400*i+800))});
 addEventListener("resize",sched);setTimeout(()=>{render()},300);
 })();
 </script>
