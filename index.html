@@ -3232,7 +3232,7 @@ const EN={
 const mk=(w,h,t)=>({w,h,t:t||".".repeat(w*h),k:[]}),okM=m=>m&&Number.isInteger(m.w)&&Number.isInteger(m.h)&&m.w>=4&&m.w<=40&&m.h>=4&&m.h<=30&&typeof m.t==="string"&&m.t.length===m.w*m.h&&Array.isArray(m.k);
 let BM=ld("cps_bm");if(!okM(BM))BM=mk(24,16);let INB=ld("cps_bm_in");if(!okM(INB))INB=mk(24,16);
 let brush="mv",sel=null,drag=null,paint=false,cell=24;
-const view=()=>isDM()?BM:(INB.got?INB:{w:BM.w,h:BM.h,t:BM.t,k:BM.k.filter(k=>!k.hid)});
+const view=()=>isDM()?BM:(INB.got||INB.k.some(t=>t.o===ME)?INB:{w:BM.w,h:BM.h,t:BM.t,k:BM.k.filter(k=>!k.hid)});
 const cv=$("#bmCv"),box=$("#bmBox"),g=cv.getContext("2d");
 function draw(){const m=view(),W=box.clientWidth;if(!W)return;cell=Math.max(10,Math.floor(W/m.w));const dpr=window.devicePixelRatio||1,pw=cell*m.w,ph=cell*m.h;
  cv.style.width=pw+"px";cv.style.height=ph+"px";cv.width=pw*dpr;cv.height=ph*dpr;g.setTransform(dpr,0,0,dpr,0,0);
@@ -3260,8 +3260,10 @@ let tT=0,kT=0;const sendT=()=>{clearTimeout(tT);tT=setTimeout(()=>send({m:"t",w:
 const save=()=>{sv("cps_bm",BM)};
 function me(){const h=document.querySelector('[data-k="handle"]'),sel=document.querySelector('select[id*="char" i]');let n=((h&&h.value)||"").trim()||((sel&&sel.selectedOptions[0]&&sel.selectedOptions[0].text)||"").trim()||"Runner";let c=getComputedStyle(document.querySelector(".holo")||document.documentElement).getPropertyValue("--hc").trim();if(!/^#[0-9a-f]{6}$/i.test(c))c="#5ee7ff";return{n:n.slice(0,24),c}}
 function tray(){if(isDM())return"";const m=view(),mine=m.k.find(t=>t.o===ME),i=me();const ctl='<div class="ctl"><label class="mini" style="cursor:pointer">TOKEN IMAGE<input type="file" accept="image/*" hidden id="bmImg"></label>'+(document.querySelector(".holo img[src]")?'<button class="mini" data-a="imgp">USE PORTRAIT</button>':"")+'</div>';return(mine?'<p class="gm-e">Your token is on the map. Drag it to move.</p>':'<div id="bmChip" style="touch-action:none;cursor:grab;padding:10px 12px;text-align:center;font-weight:700;color:#000;background:'+esc(i.c)+'">'+esc(i.n)+'</div><p class="gm-e">Drag your character onto the map, or <button class="mini" data-a="join">ADD ME</button></p>')+ctl}
-function join(x,y){const m=view();if(m.k.some(t=>t.o===ME))return;if(!Number.isInteger(x)||at(m,x,y)){let f=null;for(let yy=0;yy<m.h&&!f;yy++)for(let xx=0;xx<m.w;xx++)if(!at(m,xx,yy)){f={x:xx,y:yy};break}if(!f)return;x=f.x;y=f.y}
- const i=me();INB.k.push({i:ME,o:ME,n:i.n,x,y,c:i.c,t:"pc"});sv("cps_bm_in",INB);send({m:"join",id:ME,n:i.n,c:i.c,x,y});sel=ME;side();draw()}
+function join(x,y){if(isDM())return;INB.got=1;const m=INB,i=me();let t=m.k.find(k=>k.o===ME);
+ if(!Number.isInteger(x)||!Number.isInteger(y)||(at(m,x,y)&&at(m,x,y)!==t)){if(t){x=t.x;y=t.y}else{let f=null;for(let yy=0;yy<m.h&&!f;yy++)for(let xx=0;xx<m.w;xx++)if(!at(m,xx,yy)){f={x:xx,y:yy};break}if(!f)return;x=f.x;y=f.y}}
+ if(t){t.x=x;t.y=y;t.n=i.n;t.c=i.c;t.p=Date.now()}else{t={i:ME,o:ME,n:i.n,x,y,c:i.c,t:"pc",p:Date.now()};m.k.push(t)}
+ sv("cps_bm_in",INB);const jm={m:"join",id:ME,n:i.n,c:i.c,x,y};send(jm);setTimeout(()=>send(jm),4000);setTimeout(()=>send(jm),12000);sel=ME;side();draw()}
 function side(){const t=view().k.find(x=>x.i===sel),b=$("#bmSide"),dm=isDM();
  if(!t){b.innerHTML='<p class="gm-e">'+(dm?"Paint terrain with a brush, add tokens, then drag them. Tap a token to open its sheet.":"Tap your token and drag it to move.")+'</p>'+tray();return}
  if(!dm){b.innerHTML='<h4>'+esc(t.n)+'</h4><p class="gm-e">'+(t.t==="pc"?(t.o===ME?"Drag to move.":"Not your token."):"Enemy")+'</p>'+tray();return}
@@ -3309,7 +3311,7 @@ window.addEventListener("cps:bm",e=>{const d=e.detail;if(!d)return;
  if(BM.k.length&&d.m==="mv"){const t=BM.k.find(x=>x.i===d.id&&x.t==="pc"&&x.o&&x.o===d.by);if(t&&Number.isInteger(d.x)&&Number.isInteger(d.y)&&d.x>=0&&d.y>=0&&d.x<BM.w&&d.y<BM.h&&!at(BM,d.x,d.y)){t.x=d.x;t.y=d.y;save();sendK();draw()}return}
  if(isDM()||BM.k.length)return;
  if(d.m==="t"&&Number.isInteger(d.w)&&Number.isInteger(d.h)&&typeof d.t==="string"){const n={w:d.w,h:d.h,t:d.t.replace(/[^.#~c+]/g,"."),k:INB.k};if(okM(n)){INB=n;INB.got=1}}
- else if(d.m==="k"&&Array.isArray(d.l)){INB.k=d.l.slice(0,40).map(t=>({i:String(t.i).slice(0,8),o:String(t.o||"").slice(0,8),n:String(t.n||"").slice(0,24),x:Math.max(0,Math.min(39,+t.x|0)),y:Math.max(0,Math.min(29,+t.y|0)),c:/^#[0-9a-f]{6}$/i.test(t.c)?t.c:"#5ee7ff",t:t.t==="pc"?"pc":"en"}));INB.got=1}else return;
+ else if(d.m==="k"&&Array.isArray(d.l)){const own0=INB.k.find(t=>t.o===ME&&t.p);INB.k=d.l.slice(0,40).map(t=>({i:String(t.i).slice(0,8),o:String(t.o||"").slice(0,8),n:String(t.n||"").slice(0,24),x:Math.max(0,Math.min(39,+t.x|0)),y:Math.max(0,Math.min(29,+t.y|0)),c:/^#[0-9a-f]{6}$/i.test(t.c)?t.c:"#5ee7ff",t:t.t==="pc"?"pc":"en"}));INB.got=1;if(own0&&Date.now()-own0.p<20000&&!d.l.some(t=>t&&t.o===ME)&&INB.k.length<40)INB.k.push(own0)}else return;
  sv("cps_bm_in",INB);draw();const tb=$('[data-tab="battle"]');if(tb&&!tb.classList.contains("on"))tb.textContent="BATTLE MAP ●";side()});
 window.addEventListener("cps:hello",()=>{Object.keys(IMGS).forEach((o,i)=>{const tk=BM.k.find(x=>(x.o||x.i)===o);if(o===ME||(tk&&!tk.hid))setTimeout(()=>send({m:"img",id:o,d:IMGS[o]}),1800+i*500)});if(BM.k.length||BM.t.replace(/\./g,"")){setTimeout(()=>{send({m:"t",w:BM.w,h:BM.h,t:BM.t});send({m:"k",l:vis()})},1200)}});
 document.addEventListener("click",e=>{const t=e.target.closest("[data-tab=battle],#dmtog");if(!t)return;setTimeout(()=>{const b=$('[data-tab="battle"]');if(b)b.textContent="BATTLE MAP";$("#bmW").value=BM.w;$("#bmH").value=BM.h;side();draw()},60)});
