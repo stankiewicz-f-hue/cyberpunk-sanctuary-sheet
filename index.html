@@ -867,10 +867,34 @@ function qhOut(){if(!QHS.jack){logRoll("Jack Out","not connected","—","");retu
 function qhMark(){QHS.jack=true;QHS.breach=true;logRoll("Breach","marked as done (minigame or GM call)","DONE","ok");qhUi()}
 /* Breach Protocol <-> sheet: the overlay reads and writes the open character only through this object */
 function takeLuck(){const lk=Math.max(0,Math.min(+$("#lk2").value||0,+val("luck").value||0));if(lk){val("luck").value=+val("luck").value-lk;$("#lk2").value=0;upd()}return lk}
+function qhRunStart(){const rk=qhRank(),cap=+val("qh_na").value||0,pw=+$("#qhpw").value||0,of=cap?" / "+cap:"";
+ if(!pw)return{ok:true,msg:"No Passwall set on the sheet: this run is free, no Net action spent."};
+ if(QHS.breach)return{ok:false,msg:"The Passwall is already breached on your sheet. Go and quickhack, no run needed."};
+ if(!rk)return{ok:false,msg:"Set your Netrunner rank on the Role & Status tab first."};
+ if(!QHS.jack)return{ok:false,msg:"Jack In first: it costs a Net action. Use JACK IN in the Quickhacks panel."};
+ if(cap&&QHS.used>=cap)return{ok:false,msg:"No Net actions left this turn ("+QHS.used+" / "+cap+"). Press NEW TURN on the sheet first."};
+ QHS.used++;logRoll("Breach Protocol","run started against Passwall DV "+pw+" · Net action "+QHS.used+of,"NET −1","");qhUi();
+ return{ok:true,msg:"Net action spent ("+QHS.used+of+")."}}
+function qhUnplug(){const cap=+val("qh_na").value||0,of=cap?" / "+cap:"";
+ if(!QHS.jack)return{ok:true,msg:""};
+ const pay=!cap||QHS.used<cap;if(pay)QHS.used++;QHS.jack=false;QHS.breach=false;
+ logRoll("Unplug",pay?"jacked out of the target · Net action "+QHS.used+of:"jacked out with no Net action left (your GM calls the cost)","JACKED OUT","");qhUi();
+ return{ok:true,msg:pay?"Unplugged: you are jacked out on your sheet (1 Net action).":"Unplugged: you are jacked out on your sheet, but no Net action was left. Your GM calls the cost."}}
+function bpHpInfo(){const mx=+$("#hpmax").value||0,h=val("hp").value;return{label:isRobot()?"SDP":"HP",cur:h===""?(mx||null):+h,max:mx||null}}
+function bpHit(expr,why){const m=String(expr||"").replace(/\s/g,"").match(/^(\d*)d(\d+)([+-]\d+)?$/i);
+ if(!m)return{ok:false,msg:"Can't read \""+expr+"\". Use dice like 3d6."};
+ const n=+(m[1]||1),f=+m[2],k=+(m[3]||0);if(n<1||n>20||f<2||f>100)return{ok:false,msg:"Dice out of range. Try something like 3d6."};
+ const inf=bpHpInfo();if(inf.cur===null)return{ok:false,msg:"Set your "+inf.label+" on the sheet first."};
+ const rs=[];let tot=k;for(let i=0;i<n;i++){const r=d(f);rs.push(r);tot+=r}tot=Math.max(0,tot);
+ const after=Math.max(0,inf.cur-tot);val("hp").value=after;upd();
+ const zero=after===0?(isRobot()?"SDP 0: you are offline, reboot checks start.":"HP 0: Mortally Wounded, Death Saves start."):"";
+ logRoll("Breach Protocol · "+(why||"backlash"),expr+" ["+rs.join(", ")+"] straight to "+inf.label+", armor skipped · "+inf.cur+" → "+after+(zero?" · "+zero:""),"−"+tot,"bad");
+ return{ok:true,tot,rs,before:inf.cur,after,label:inf.label,max:inf.max,zero}}
 const BPX={
  runner:()=>val("handle").value.trim(),
  rank:()=>rkOf("Netrunner"),
  mods(){const parts=[],add=(l,n)=>{if(n)parts.push([l,n])},rs=restState();add("wounds",pen());add(isRobot()?"low power":"sleep",rs.pen||0);add("MOD",+$("#md").value||0);add("Interface bonus",+val("qh_b").value||0);return{parts,total:parts.reduce((a,p)=>a+p[1],0),out:!!rs.out}},
+ netStart:()=>qhRunStart(),jackOut:()=>qhUnplug(),hpInfo:()=>bpHpInfo(),hit:(x,w)=>bpHit(x,w),
  outText:()=>isRobot()?"Powered off: recharge on the Role & Status tab first. The sheet blocks rolls at 0 power, and so does the breach.":"0 sleep left: rest on the Role & Status tab first. The sheet blocks rolls at 0 sleep, and so does the breach.",
  luck:takeLuck,
  passwall:()=>+$("#qhpw").value||0,
@@ -1726,6 +1750,14 @@ function genBoardWithFallback(size,B,daemonsList,dv,protectId){
 }
 
 function startGame(){
+  if(ctx==='qh'){
+    var gt=BPX.netStart();
+    if(!gt.ok){el.msg.textContent=gt.msg; showSheetLine(gt.msg); return;}
+    showSheetLine(gt.msg);
+  }
+  startGameCore();
+}
+function startGameCore(){
   clearInterval(timerId); clearTimeout(bootTimer);
   if(game) clearTimeout(game.justTimer);
   var pool=DAEMONS.filter(function(d){return selected.has(d.id);});
@@ -2272,6 +2304,10 @@ el.pause.addEventListener('click',function(){ if(game) setPaused(!game.paused); 
 el.unplug.addEventListener('click',function(){
   if(!game||!game.running||game.booting) return;
   finish('unplug');
+  if(ctx==='qh'){
+    var u=BPX.jackOut();
+    if(u&&u.msg) showSheetLine((el.sheetLine.hidden?'':el.sheetLine.textContent+' ')+u.msg);
+  }
 });
 el.sol.addEventListener('click',function(){
   if(!game) return;
@@ -2377,6 +2413,45 @@ function syncSheet(){
   }
   renderLink(); renderRuns(); saveCfg();
 }
+
+/* ---------- backlash damage: roll it and take it off the sheet ---------- */
+(function(){
+  var st=document.createElement('style');
+  st.textContent='#bp-hit{margin:10px 0 0;padding:10px 12px;border:1px solid #ff3ea5;border-left:4px solid #ff3ea5;background:rgba(255,62,165,.1);display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}#bp-hit[hidden]{display:none}#bp-hit .t{flex:1 1 100%;font-size:14px;line-height:1.35}#bp-hit label{font:700 11px Orbitron,sans-serif;letter-spacing:.15em;display:flex;align-items:center;gap:6px}#bp-hit input{width:84px;padding:8px;font:700 16px Rajdhani,sans-serif;text-align:center;background:#1b1030;border:1px solid #6d2fa3;color:#f4e8ff}#bp-hit button{padding:9px 16px;font:700 11px Orbitron,sans-serif;letter-spacing:.15em;background:#ff3ea5;color:#fff;border:0;cursor:pointer}#bp-hit button:disabled{opacity:.45;cursor:default}#bp-hit .r{flex:1 1 100%;font-weight:700;color:#ff9bd2}';
+  document.head.appendChild(st);
+  var row=document.createElement('div');row.id='bp-hit';row.hidden=true;
+  row.innerHTML='<span class="t"></span><label>DAMAGE <input id="bp-hitDice" type="text" maxlength="12" aria-label="Damage dice"></label><button type="button" id="bp-hitBtn">TAKE THE HIT</button><span class="r" id="bp-hitRes"></span>';
+  el.resCons.parentNode.insertBefore(row,el.resCons.nextSibling);
+  var tx=row.querySelector('.t'),dice=row.querySelector('#bp-hitDice'),btn=row.querySelector('#bp-hitBtn'),res=row.querySelector('#bp-hitRes');
+  dice.value=store.get('hitdice','3d6');
+  var key='',done=false;
+  function setT(n,v){if(n.textContent!==v) n.textContent=v;}
+  function iceHits(){return !el.iceLine.hidden && el.iceLine.textContent && !/neutralized/i.test(el.iceLine.textContent);}
+  function badFail(){return !el.resCons.hidden && el.resCons.textContent && /(^|\s)bad(\s|$)/.test(el.result.className);}
+  function refresh(){
+    var k=el.result.className+'|'+el.resHead.textContent+'|'+el.iceLine.textContent+'|'+el.resCons.textContent;
+    if(k!==key){key=k;done=false;setT(res,'');}
+    var show=!el.result.hidden&&(iceHits()||badFail());
+    if(row.hidden===show) row.hidden=!show;
+    if(!show) return;
+    var inf=BPX.hpInfo();
+    setT(tx,'This backlash can hurt. Roll the damage to take it off your '+inf.label+(inf.cur!==null?' (now '+inf.cur+(inf.max?' / '+inf.max:'')+')':'')+'. It skips armor. GM\u2019s call.');
+    if(btn.disabled!==done) btn.disabled=done;
+    setT(btn,done?'HIT TAKEN':'TAKE THE HIT');
+  }
+  [el.result,el.resCons,el.iceLine,el.resHead].forEach(function(n){
+    new MutationObserver(refresh).observe(n,{attributes:true,childList:true,characterData:true,subtree:true});
+  });
+  btn.addEventListener('click',function(){
+    if(done) return;
+    var ex=(dice.value||'3d6').trim(); store.set('hitdice',ex);
+    var r=BPX.hit(ex,iceHits()?'ICE retaliation':'failed breach backlash');
+    if(!r.ok){setT(res,r.msg);return;}
+    done=true;
+    setT(res,'\u2212'+r.tot+' '+r.label+' ('+r.rs.join(' + ')+') \u00b7 '+r.before+' \u2192 '+r.after+(r.zero?' \u00b7 '+r.zero:''));
+    refresh();
+  });
+})();
 
 /* ---------- open / close: built into the sheet, no second page ---------- */
 var overlay=document.getElementById('breach-overlay');
