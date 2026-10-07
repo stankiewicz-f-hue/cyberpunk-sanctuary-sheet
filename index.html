@@ -529,6 +529,13 @@ display:none;pointer-events:none;z-index:20}
 #breach-overlay .cell.used{color:var(--line);background:transparent;border-color:var(--deep2)}
 #breach-overlay .cell:focus-visible{outline-offset:-4px}
 #breach-overlay .cell[data-step]::after{content:attr(data-step);position:absolute;top:2px;right:5px;font-size:12px;font-weight:700;color:var(--hot)}
+#breach-overlay .cell.hint{outline:2px solid var(--hot);outline-offset:-3px;box-shadow:0 0 16px var(--hot),inset 0 0 12px color-mix(in srgb,var(--hot) 45%,transparent)}
+#breach-overlay .cell.hint::before{content:"\25B6";position:absolute;top:2px;left:5px;font-size:11px;color:var(--hot)}
+@media(prefers-reduced-motion:no-preference){#breach-overlay .cell.hint{animation:bpHint 1s ease-in-out infinite}}
+@keyframes bpHint{50%{box-shadow:0 0 6px var(--hot),inset 0 0 4px color-mix(in srgb,var(--hot) 25%,transparent)}}
+#breach-overlay .bp-fx{list-style:none;margin:0 0 12px;padding:0}
+#breach-overlay .bp-fx li{margin-bottom:6px;padding:7px 10px;border:1px solid var(--line);border-left:3px solid #5ee7ff;background:var(--deep);font-size:15px;line-height:1.35}
+#breach-overlay .bp-fx li b{margin-right:6px;font:700 11px "Orbitron",sans-serif;letter-spacing:.16em;color:#5ee7ff}
 #breach-overlay .veil{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:clamp(18px,5vw,40px);background:color-mix(in srgb,var(--deep0) 96%,transparent);border:1px solid var(--p2);cursor:pointer}
 #breach-overlay .veil pre{margin:0;font:600 14px/1.9 "Orbitron",sans-serif;letter-spacing:.1em;white-space:pre-wrap;color:var(--p2)}
 #breach-overlay .veil small{margin-top:16px;color:var(--mute);font-size:15px}
@@ -922,6 +929,8 @@ const BPX={
  mods(){const parts=[],add=(l,n)=>{if(n)parts.push([l,n])},rs=restState();add("wounds",pen());add(isRobot()?"low power":"sleep",rs.pen||0);add("MOD",+$("#md").value||0);add("Interface bonus",+val("qh_b").value||0);return{parts,total:parts.reduce((a,p)=>a+p[1],0),out:!!rs.out}},
  netStart:c=>qhRunStart(c),setHp:v=>{val("hp").value=v;upd();logRoll("Breach Protocol","GM waived the hit: HP back to "+v,"UNDONE","")},net:()=>({jack:QHS.jack,breach:QHS.breach,used:QHS.used,cap:qhCap(),rank:qhRank()}),jackIn:()=>{qhJack()},turn:()=>qhTurn(),move:l=>qhMove(l),jackOut:()=>qhUnplug(),hpInfo:()=>bpHpInfo(),hit:(x,w)=>bpHit(x,w),
  outText:()=>isRobot()?"Powered off: recharge on the Role & Status tab first. The sheet blocks rolls at 0 power, and so does the breach.":"0 sleep left: rest on the Role & Status tab first. The sheet blocks rolls at 0 sleep, and so does the breach.",
+ addEb:n=>{const eb=+val("eb").value||0;val("eb").value=eb+n;upd();return{ok:true,eb:eb+n}},
+ refund:()=>{if(QHS.used>0){QHS.used--;qhUi();return{ok:true,used:QHS.used,cap:qhCap()}}return{ok:false,used:0,cap:qhCap()}},
  luck:takeLuck,
  passwall:()=>+$("#qhpw").value||0,
  target:()=>$("#qhtg").value.trim(),
@@ -1336,6 +1345,7 @@ pl.addEventListener("click",function(){
   <details class="bp-how">
     <summary>HOW IT PLAYS</summary>
     <ul>
+      <li><b>Program effects:</b> every sequence does something the moment it uploads, and the PROGRAM EFFECTS feed under SEQUENCES (and your Roll Log) says what. <b>Scanner</b> lights the next good cell and finds a hidden terminal (you sell its data: eb goes straight onto your sheet) or a lurking enemy. <b>Backdoor</b> refunds 1 Net action (once per run) and, from the Quickhacks panel, marks the Passwall breached. <b>Pathfinder</b> adds 1 buffer slot on top of its floor preview. <b>Slide</b> lets your next pick be any unused code on top of its floor skip. <b>Eye-Dee</b> exposes ICE for -1 Rez. <b>Cloak</b> cancels backlash and ICE retaliation when you jack out. <b>Control</b> seizes a system and adds 10 s. <b>Virus</b> eats 2 Rez of ICE on top of the bottom-floor payload. <b>Zap</b> destroys ICE outright; with no ICE it wipes your trace like Cloak.</li>
       <li><b>Net actions:</b> Jack In, starting the breach, every move to a deeper floor (Descend, Slide or a fork door) and Unplug each cost 1 Net action. You get 2 at Interface 1 to 3, 3 at 4 to 6, 4 at 7 to 9 and 5 at 10, unless you type your own total in the Quickhacks panel. END TURN refreshes them.</li>
       <li><b>Damage:</b> when ICE is still standing as you jack out, or a breach locks you out, the hit is rolled for you and taken straight off your HP (armor skipped). ICE hits 2d6 at Black Site, 3d6 at Militech and 4d6 at Arasaka, half as many dice if you wounded it. A failed breach costs 1d6, or 2d6 from Black Site up. The GM can waive a hit with one tap.</li>
       <li><b>Virus payload:</b> land the Virus on the bottom floor and you can write what you rewrite in the system. Your party sees it in the Roll Log.</li>
@@ -1391,6 +1401,7 @@ pl.addEventListener("click",function(){
       <div id="bp-bufferView" class="buffer" aria-live="polite"></div>
       <h3 class="sub">SEQUENCES</h3>
       <ul id="bp-seqView" class="seqs"></ul>
+      <div id="bp-fxbox" hidden><h3 class="sub">PROGRAM EFFECTS</h3><ul id="bp-fx" class="bp-fx" aria-live="polite"></ul></div>
 
       <section id="bp-result" class="verdict" hidden role="status">
         <h2 id="bp-resHead"></h2>
@@ -1421,16 +1432,17 @@ pl.addEventListener("click",function(){
 
 // <logic>
 var CODES=['1C','55','BD','E9','7A','FF'];
+var runFx={foot:false};
 var DAEMONS=[
-  {id:'scanner',   name:'Scanner',   base:2, text:'Reveal a hidden data terminal, or an enemy lurking on this floor.'},
-  {id:'backdoor',  name:'Backdoor',  base:2, text:'Force the password wall open and get a foothold in the system.'},
-  {id:'pathfinder',name:'Pathfinder',base:2, text:'Map the floors ahead before you commit to diving into them.'},
-  {id:'slide',     name:'Slide',     base:3, text:'Slip to an adjacent floor of the architecture without a fight.'},
-  {id:'eyedee',    name:'Eye-Dee',   base:3, text:'Identify the icons on this floor as friend, foe, or file.'},
-  {id:'cloak',     name:'Cloak',     base:3, text:'Erase your presence here so the trace stays cold.'},
-  {id:'control',   name:'Control',   base:3, text:'Seize a Basic system: a camera, a door, a turret, a drone.'},
-  {id:'virus',     name:'Virus',     base:4, text:'Upload a virus that corrupts, steals, or ransoms the target data.'},
-  {id:'zap',       name:'Zap',       base:4, text:'Turn a Black Program loose on the ICE guarding this node.'}
+  {id:'scanner',   name:'Scanner',   base:2, text:'Reveal a hidden data terminal, or an enemy lurking on this floor. EFFECT: lights the next good cell; a terminal pays eb.'},
+  {id:'backdoor',  name:'Backdoor',  base:2, text:'Force the password wall open and get a foothold. EFFECT: refunds 1 Net action (once per run).'},
+  {id:'pathfinder',name:'Pathfinder',base:2, text:'Map the floors ahead before you commit to diving into them. EFFECT: +1 buffer slot.'},
+  {id:'slide',     name:'Slide',     base:3, text:'Slip to an adjacent floor of the architecture without a fight. EFFECT: your next pick can be any unused code.'},
+  {id:'eyedee',    name:'Eye-Dee',   base:3, text:'Identify the icons on this floor as friend, foe, or file. EFFECT: exposes ICE for -1 Rez.'},
+  {id:'cloak',     name:'Cloak',     base:3, text:'Erase your presence here so the trace stays cold. EFFECT: no backlash and no ICE retaliation.'},
+  {id:'control',   name:'Control',   base:3, text:'Seize a Basic system: a camera, a door, a turret, a drone. EFFECT: +10 s while you hold it.'},
+  {id:'virus',     name:'Virus',     base:4, text:'Upload a virus that corrupts, steals, or ransoms the target data. EFFECT: eats 2 Rez of any ICE.'},
+  {id:'zap',       name:'Zap',       base:4, text:'Turn a Black Program loose on the ICE guarding this node. EFFECT: destroys it; with no ICE it wipes your trace.'}
 ];
 function randInt(n){return Math.floor(Math.random()*n);}
 function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
@@ -1829,7 +1841,7 @@ function startGameCore(){
   if(!pool.length){el.msg.textContent='Pick at least one sequence.';return;}
   var gate=BPX.mods();
   if(gate.out){el.msg.textContent=BPX.outText();return;}
-  el.msg.textContent=''; runOwner=activeCharacterId;
+  el.msg.textContent=''; runOwner=activeCharacterId; runFx={foot:false};
   el.setup.hidden=true; el.breach.hidden=false;
 
   if(el.diveMode.checked){
@@ -1955,6 +1967,7 @@ function renderIce(){
 }
 
 function presentFloor(){
+  fxClear();
   el.moveMsg.hidden=true; if(window.__bpVirus) window.__bpVirus.show(false);
   buildBoard();
   el.result.hidden=true; el.veil.hidden=true;
@@ -2039,7 +2052,7 @@ function isLost(s){
 function hasMove(){
   for(var i=0;i<cells.length;i++){
     var o=cells[i];
-    var inLine=game.axis==='row'?o.r===game.idx:o.c===game.idx;
+    var inLine=game.free||(game.axis==='row'?o.r===game.idx:o.c===game.idx);
     if(inLine && !game.used.has(o.r*game.size+o.c)) return true;
   }
   return false;
@@ -2048,19 +2061,100 @@ function liveButtons(){
   return cells.filter(function(o){return !o.btn.disabled;}).map(function(o){return o.btn;});
 }
 
+/* ---------- PROGRAM EFFECTS: every sequence does something the moment it uploads ---------- */
+var CLOAKMSG='Trace wiped: your presence is erased, so there is no backlash this time.';
+var FX_TERMINALS=['payroll ledger','executive e-mail archive','prototype schematics','blackmail folder','client list','shipping manifest','security footage vault'];
+var FX_LURKERS=['a guard daemon','a sleeper sentry','a watchdog process','a trace-hound'];
+var FX_SYSTEMS=['security camera','maglock door','auto-turret','surveillance drone'];
+function fxPick(a){return a[randInt(a.length)];}
+function fxClear(){
+  var b=document.getElementById('bp-fxbox'),f=document.getElementById('bp-fx');
+  if(f) f.innerHTML=''; if(b) b.hidden=true;
+}
+function fxPush(name,text,res){
+  var g=game; if(g){ (g.fxLog=g.fxLog||[]).push(name+': '+text); }
+  var b=document.getElementById('bp-fxbox'),f=document.getElementById('bp-fx');
+  if(b&&f){
+    b.hidden=false;
+    var li=document.createElement('li'),h=document.createElement('b');
+    h.textContent=name; li.appendChild(h); li.appendChild(document.createTextNode(' '+text));
+    f.appendChild(li);
+  }
+  try{ BPX.log('Breach \u00b7 '+name,text,res||'EFFECT','ok'); }catch(e){}
+}
+function applyFx(id){
+  var g=game; if(!g) return;
+  if(id==='scanner'){
+    var arr=Array.from(g.used), on=arr.length<g.path.length, msg;
+    for(var i=0;i<arr.length&&on;i++){ if(g.path[i][0]*g.size+g.path[i][1]!==arr[i]) on=false; }
+    if(on){ g.hint=g.path[arr.length][0]*g.size+g.path[arr.length][1]; msg='The ping lights the next good cell. '; }
+    else { msg='The ping finds no clean route from where you are now. '; }
+    var pay=0;
+    if(randInt(2)){
+      pay=(randInt(6)+1)*100; var pr=BPX.addEb?BPX.addEb(pay):{ok:false};
+      msg+='Hidden terminal: '+fxPick(FX_TERMINALS)+'. You sell the data on the street: +'+pay+' eb'+(pr.ok?' added to your sheet ('+pr.eb+' total).':'.');
+    }
+    else { msg+='Lurking enemy: '+fxPick(FX_LURKERS)+'. You saw it first, so it cannot ambush you.'; }
+    fxPush('SCANNER',msg,pay?('+'+pay+' eb'):null);
+  }
+  else if(id==='backdoor'){
+    if(runFx.foot){ fxPush('BACKDOOR','The foothold from earlier in this run is still open.'); return; }
+    runFx.foot=true;
+    var r=BPX.refund?BPX.refund():{ok:false};
+    fxPush('BACKDOOR',r.ok?('Foothold forced: 1 Net action refunded ('+r.used+(r.cap?' of '+r.cap:'')+' spent).'):'Foothold forced. No Net action had been spent yet, so there was nothing to refund.');
+    netBar();
+  }
+  else if(id==='pathfinder'){
+    if(g.B<9){ g.B++; fxPush('PATHFINDER','Shortcut found: +1 buffer slot ('+g.B+' now).'); }
+    else fxPush('PATHFINDER','Route mapped. The buffer is already at its maximum of 9.');
+  }
+  else if(id==='slide'){
+    g.free=true; fxPush('SLIDE','You slip sideways: your next pick can be any unused code on the matrix.');
+  }
+  else if(id==='eyedee'){
+    if(g.ice&&g.ice.rez>0){
+      g.ice.rez=Math.max(0,g.ice.rez-1); renderIce();
+      fxPush('EYE-DEE','Icons identified. '+g.ice.name+' is a foe and its weak point is exposed: -1 REZ ('+g.ice.rez+' left)'+(g.ice.rez===0?', it goes down.':'.'));
+    } else {
+      var n=1+randInt(3);
+      fxPush('EYE-DEE','Icons identified: '+n+' file'+(n>1?'s':'')+' worth grabbing, 1 friendly process, nothing hostile on this floor.');
+    }
+  }
+  else if(id==='cloak'){
+    fxPush('CLOAK','Presence erased. No backlash, and any ICE here loses your trace when you jack out.');
+  }
+  else if(id==='control'){
+    var sys=fxPick(FX_SYSTEMS);
+    if(g.T>0){ g.timeLeft+=10; g.T+=10; renderTimer(); fxPush('CONTROL','Seized the '+sys+': it stays yours for the scene, and holding it buys +10 s.'); }
+    else fxPush('CONTROL','Seized the '+sys+': it stays yours for the scene. This run is untimed, so there are no seconds to add.');
+  }
+  else if(id==='virus'){
+    if(g.ice&&g.ice.rez>0){
+      g.ice.rez=Math.max(0,g.ice.rez-2); renderIce();
+      fxPush('VIRUS','The virus eats into '+g.ice.name+': -2 REZ ('+g.ice.rez+' left)'+(g.ice.rez===0?', it goes down.':'.'));
+    } else fxPush('VIRUS','Uploaded: it '+fxPick(['corrupts','steals','ransoms'])+' the data on this floor.');
+  }
+  else if(id==='zap'){
+    if(g.ice) fxPush('ZAP','The Black Program fires: '+g.ice.name+' is destroyed.');
+    else fxPush('ZAP','No ICE here, so the Black Program burns out the trace-wards instead: no backlash this run.');
+  }
+}
+
 function play(r,c){
   if(!game||!game.running||game.paused||game.booting) return;
   var k=r*game.size+c;
   if(game.used.has(k)) return;
-  if(game.axis==='row'?r!==game.idx:c!==game.idx) return;
+  if(!game.free&&(game.axis==='row'?r!==game.idx:c!==game.idx)) return;
   game.used.add(k); game.buffer.push(game.grid[r][c]);
   if(game.axis==='row'){game.axis='col';game.idx=c;} else {game.axis='row';game.idx=r;}
+  game.free=false; game.hint=null;
   var justDone=[];
   game.seqs.forEach(function(s){ if(!s.done && evalSeq(game.buffer,s.codes).done){s.done=true;justDone.push(s.id);} });
   if(justDone.length){
     sfx.hit(); game.justDone=justDone;
     clearTimeout(game.justTimer);
     game.justTimer=setTimeout(function(){ if(game){game.justDone=[];paint();} },650);
+    justDone.forEach(applyFx);
     if(game.ice && justDone.indexOf('zap')!==-1){
       game.ice.rez=Math.max(0,game.ice.rez-iceDamage(game.ice));
       sfx.zap();
@@ -2080,20 +2174,20 @@ function paint(){
   var active=g.running&&!g.paused&&!g.booting;
   cells.forEach(function(o){
     var k=o.r*g.size+o.c, used=g.used.has(k);
-    var band=active&&(g.axis==='row'?o.r===g.idx:o.c===g.idx);
-    o.btn.className='cell'+(used?' used':'')+(band?' band':'')+(band&&!used?' live':'');
+    var band=active&&(g.free||(g.axis==='row'?o.r===g.idx:o.c===g.idx));
+    o.btn.className='cell'+(used?' used':'')+(band?' band':'')+(band&&!used?' live':'')+(g.hint===k&&!used&&!g.ended?' hint':'');
     o.btn.disabled=!(band&&!used);
     o.btn.removeAttribute('data-step');
   });
-  rowLabels.forEach(function(l,i){l.className='axis'+(active&&g.axis==='row'&&g.idx===i?' on':'');});
-  colLabels.forEach(function(l,i){l.className='axis'+(active&&g.axis==='col'&&g.idx===i?' on':'');});
+  rowLabels.forEach(function(l,i){l.className='axis'+(active&&!g.free&&g.axis==='row'&&g.idx===i?' on':'');});
+  colLabels.forEach(function(l,i){l.className='axis'+(active&&!g.free&&g.axis==='col'&&g.idx===i?' on':'');});
   if(g.showSol){
     g.path.forEach(function(p,i){cells[p[0]*g.size+p[1]].btn.setAttribute('data-step',String(i+1));});
   }
   if(g.ended) el.status.textContent='Breach ended.';
   else if(g.booting) el.status.textContent='Linking.';
   else if(g.paused) el.status.textContent='Paused.';
-  else el.status.textContent=g.axis==='row'?'Pick a code in row '+(g.idx+1)+'.':'Pick a code in column '+(g.idx+1)+'.';
+  else el.status.textContent=g.free?'Slide: pick any unused code on the matrix.':(g.axis==='row'?'Pick a code in row '+(g.idx+1)+'.':'Pick a code in column '+(g.idx+1)+'.');
 
   el.bufferView.innerHTML='';
   for(var i=0;i<g.B;i++){
@@ -2153,7 +2247,7 @@ function finishDiveReport(){
     (reached<dive.totalFloors?(voluntary?' You pulled out on floor '+reached+'.':' Dive ended early on floor '+reached+'.'):'');
   el.result.className='verdict'+(oCls==='full'?'':' '+oCls);
   if(dive.cons||oCls==='bad'||oCls==='partial'){
-    el.resCons.textContent=dive.cons||pick(BACKLASH[oCls==='bad'?'bad':'partial']);
+    el.resCons.textContent=(dive.cloakLast&&oCls!=='bad')?CLOAKMSG:(dive.cons||pick(BACKLASH[oCls==='bad'?'bad':'partial']));
     el.resCons.hidden=false;
   } else {el.resCons.hidden=true;el.resCons.textContent='';}
   el.iceLine.hidden=!(lastR&&lastR.ice&&!lastR.ice.neutralized); el.pathLine.hidden=true; el.slideBtn.hidden=true;
@@ -2162,7 +2256,7 @@ function finishDiveReport(){
   dive.results.forEach(function(r){
     var li=document.createElement('li');
     var lab=r.unplugged?'Unplugged':(r.cls==='full'?'Cleared':(r.cls==='partial'?'Partial':(r.cls==='skipped'?'Slid past':'Locked out')));
-    var iceTxt=r.ice?(r.ice.neutralized?', '+r.ice.name+' down':', '+r.ice.name+' retaliated'):'';
+    var iceTxt=r.ice?(r.ice.neutralized?', '+r.ice.name+' down':(r.ice.cloaked?', '+r.ice.name+' lost your trace':', '+r.ice.name+' retaliated')):'';
     var stat=r.cls==='skipped'?'no fight, no loot':(r.n+'/'+r.total+iceTxt);
     var name=r.deadend?('Dead end: '+r.door):('Floor '+(++fc));
     li.innerHTML='<span></span><span>'+lab+' &middot; '+stat+'</span>';
@@ -2245,6 +2339,7 @@ function finish(reason){
   game.running=false; game.ended=true; game.reason=reason;
   clearInterval(timerId); clearTimeout(bootTimer);
   var total=game.seqs.length, n=game.seqs.filter(function(s){return s.done;}).length;
+  var cloaked=game.seqs.some(function(s){return s.done&&s.id==='cloak';})||(!game.ice&&game.seqs.some(function(s){return s.done&&s.id==='zap';}));
   var head,body,cls,label;
   if(n===total){head='Access granted';body='Every sequence uploaded.';cls='full';label='Granted';if(reason!=='unplug')sfx.done();}
   else if(n>0){
@@ -2268,8 +2363,8 @@ function finish(reason){
   var iceResult=null, iceText='';
   if(game.ice){
     var neutralized=game.ice.rez<=0;
-    iceResult={name:game.ice.name,neutralized:neutralized,rez:game.ice.rez,maxRez:game.ice.maxRez};
-    iceText=neutralized?(game.ice.name+' neutralized. No retaliation.'):iceRetaliationText(game.ice);
+    iceResult={name:game.ice.name,neutralized:neutralized,rez:game.ice.rez,maxRez:game.ice.maxRez,cloaked:(!neutralized&&cloaked)};
+    iceText=neutralized?(game.ice.name+' neutralized. No retaliation.'):(cloaked?(game.ice.name+' lost your trace thanks to Cloak. No retaliation.'):iceRetaliationText(game.ice));
   }
 
   if(reason==='unplug'){
@@ -2287,6 +2382,7 @@ function finish(reason){
   el.again.removeAttribute('data-move'); el.slideBtn.removeAttribute('data-move'); el.again.classList.remove('nomove'); el.slideBtn.classList.remove('nomove');
 
   if(dive&&dive.active){
+    dive.cloakLast=cloaked;
     dive.results.push({idx:dive.floorIndex,n:n,total:total,cls:cls,ice:iceResult,unplugged:reason==='unplug',deadend:!!game.isDeadEnd,door:game.doorLabel||null});
     var isLast=!game.isDeadEnd&&(dive.floorIndex===dive.totalFloors-1);
     if(isLast&&game.seqs.some(function(q){return q.id==='virus'&&q.done;})) dive.virusLanded=true;
@@ -2304,7 +2400,7 @@ function finish(reason){
       el.resBody.textContent=body;
       el.result.className='verdict'+(cls==='full'?'':' '+cls);
       if(dive.cons||cls==='bad'||cls==='partial'){
-        el.resCons.textContent=dive.cons||pick(BACKLASH[cls==='bad'?'bad':'partial']);
+        el.resCons.textContent=(cloaked&&cls!=='bad')?CLOAKMSG:(dive.cons||pick(BACKLASH[cls==='bad'?'bad':'partial']));
         el.resCons.hidden=false;
       } else {el.resCons.hidden=true;el.resCons.textContent='';}
 
@@ -2341,7 +2437,7 @@ function finish(reason){
     el.resHead.textContent=head; el.resBody.textContent=body;
     el.result.className='verdict'+(reason==='unplug'?'':(cls==='full'?'':' '+cls));
     if(reason!=='unplug' && n<total && (game.cons||cls==='bad'||cls==='partial')){
-      el.resCons.textContent=game.cons||pick(BACKLASH[cls==='bad'?'bad':'partial']);
+      el.resCons.textContent=(cloaked&&cls!=='bad')?CLOAKMSG:(game.cons||pick(BACKLASH[cls==='bad'?'bad':'partial']));
       el.resCons.hidden=false;
     } else {el.resCons.hidden=true;el.resCons.textContent='';}
     el.iceLine.hidden=true; el.diveBreakdown.hidden=true; el.diveBreakdown.innerHTML='';
@@ -2396,7 +2492,7 @@ el.copy.addEventListener('click',function(){
     lines.push('Interface '+dive.rank+', base DV '+dive.dv0+', d10 '+(dive.rollRaw===null?'-':dive.rollRaw)+', '+dive.totalFloors+' floors');
     dive.results.forEach(function(r,i){
       var lab=r.unplugged?'Unplugged':(r.cls==='full'?'Cleared':(r.cls==='partial'?'Partial':(r.cls==='skipped'?'Slid past':'Locked out')));
-      var iceTxt=r.ice?(r.ice.neutralized?', '+r.ice.name+' down':', '+r.ice.name+' retaliated'):'';
+      var iceTxt=r.ice?(r.ice.neutralized?', '+r.ice.name+' down':(r.ice.cloaked?', '+r.ice.name+' lost your trace':', '+r.ice.name+' retaliated')):'';
       lines.push('Floor '+(i+1)+': '+lab+(r.cls==='skipped'?'':' ('+r.n+'/'+r.total+')')+iceTxt);
     });
     if(dive.active){
@@ -2498,7 +2594,7 @@ function syncSheet(){
   var tx=row.querySelector('.t'),btn=row.querySelector('#bp-hitBtn'),res=row.querySelector('#bp-hitRes');
   var key='',state='idle',hit=null,why='',expr='';
   function setT(n,v){if(n.textContent!==v) n.textContent=v;}
-  function iceHits(){return !el.iceLine.hidden && el.iceLine.textContent && !/neutralized/i.test(el.iceLine.textContent);}
+  function iceHits(){return !el.iceLine.hidden && el.iceLine.textContent && !/neutralized|lost your trace/i.test(el.iceLine.textContent);}
   function badFail(){return !el.resCons.hidden && el.resCons.textContent && /(^|\s)bad(\s|$)/.test(el.result.className);}
   function dmgExpr(){
     var g=game, idx=levelIndexForDV(g?g.meta.dv:(dive?dive.dv0:10));
