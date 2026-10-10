@@ -714,7 +714,7 @@ display:none;pointer-events:none;z-index:20}
 <div class="sec"><h3>GANG RELATIONS <button class="mini" id="addg" style="margin-left:12px">+ ADD GANG</button></h3><input type="hidden" data-k="gcount"><div class="vh" id="glist"></div></div>
 </section>
 <section class="pn" id="p-life">
-<div class="bd"><div class="bdh"><i id="bd-led" title="Jack into Sanctuary DOOM" role="button" tabindex="0" aria-label="Jack into Sanctuary DOOM"></i>BRAINDANCE <small>BD-ARCHIVE · LIFE</small><em id="bdsub">SUBJECT // UNKNOWN</em></div><div class="bdt"><span class="a">LIFE</span><span class="x">DEATH</span></div><div class="bdb"><div class="bdi"><label>FULL NAME<input class="fi nt" data-k="lp_name" placeholder="Name before the handle"></label><label>AGE<input class="fi nt" data-k="lp_age" placeholder="Years lived, or since waking"></label><label>BORN<input class="fi nt" data-k="lp_born" placeholder="Place and year"></label><label>STATUS<select class="fi" data-k="lp_status"><option value="">—</option><option>Alive</option><option>Rebuilt as a clanker</option><option>Unknown</option></select></label></div><div><span class="bdl">BIO · YOUR STORY</span><div class="box"><textarea data-k="lp_bio" placeholder="Record your life here: who you were, how it ended, and what you are doing with the time you have…"></textarea></div></div></div></div>
+<div class="bd"><div class="bdh"><i id="bd-led"></i>BRAINDANCE <small>BD-ARCHIVE · LIFE</small><em id="bdsub">SUBJECT // UNKNOWN</em></div><div class="bdt"><span class="a">LIFE</span><span class="x">DEATH</span></div><div class="bdb"><div class="bdi"><label>FULL NAME<input class="fi nt" data-k="lp_name" placeholder="Name before the handle"></label><label>AGE<input class="fi nt" data-k="lp_age" placeholder="Years lived, or since waking"></label><label>BORN<input class="fi nt" data-k="lp_born" placeholder="Place and year"></label><label>STATUS<select class="fi" data-k="lp_status"><option value="">—</option><option>Alive</option><option>Rebuilt as a clanker</option><option>Unknown</option></select></label></div><div><span class="bdl">BIO · YOUR STORY</span><div class="box"><textarea data-k="lp_bio" placeholder="Record your life here: who you were, how it ended, and what you are doing with the time you have…"></textarea></div></div></div></div>
 <div class="sec"><h3>LIFEPATH</h3><div class="vh"><div class="rc"><div class="rh"><b>ORIGINS &amp; STYLE</b></div><label>CULTURAL ORIGINS<input class="fi nt" data-k="lp_orig" placeholder="Where your people come from"></label><label>PERSONALITY<input class="fi nt" data-k="lp_pers" placeholder="How you come across"></label><label>CLOTHING STYLE<input class="fi nt" data-k="lp_cloth" placeholder="What you wear and why"></label><label>AFFECTATION<input class="fi nt" data-k="lp_aff" placeholder="The quirk you are known for"></label></div><div class="rc"><div class="rh"><b>VALUES</b></div><label>WHAT YOU VALUE MOST<input class="fi nt" data-k="lp_val" placeholder="Loyalty, money, freedom, respect…"></label><label>FEELINGS ABOUT PEOPLE<input class="fi nt" data-k="lp_feel" placeholder="Trusting, wary, hateful, protective…"></label><label>MOST VALUED PERSON<input class="fi nt" data-k="lp_person" placeholder="Who matters most to you"></label><label>MOST VALUED POSSESSION<input class="fi nt" data-k="lp_poss" placeholder="The one thing you would never sell"></label></div><div class="rc"><div class="rh"><b>BACKGROUND</b></div><label>FAMILY BACKGROUND<input class="fi nt" data-k="lp_fam" placeholder="Who raised you and where you stood"></label><label>CHILDHOOD ENVIRONMENT<input class="fi nt" data-k="lp_child" placeholder="Where and how you grew up"></label><label>FAMILY CRISIS<input class="fi nt" data-k="lp_crisis" placeholder="What went wrong at home"></label><label>LIFE GOALS<input class="fi nt" data-k="lp_goals" placeholder="What you are chasing"></label></div></div></div>
 <div class="sec"><h3>RELATIONSHIPS</h3><div class="vh"><div class="rc"><div class="rh"><b>PEOPLE</b></div><label>FRIENDS<input class="fi nt" data-k="lp_friends" placeholder="Who they are, how you met, what you owe each other"></label><label>LOVE<input class="fi nt" data-k="lp_love" placeholder="Partners, exes, crushes, and where it stands"></label><label>ENEMIES<input class="fi nt" data-k="lp_enemies" placeholder="Who wants you hurt, why, and how far they will go"></label><label>FAMILY<input class="fi nt" data-k="lp_family" placeholder="Parents, siblings, kids, and where they are now"></label></div></div></div>
 </section>
@@ -2892,10 +2892,7 @@ var last=performance.now();
   var overlay=document.getElementById("doom-overlay"),exitBtn=document.getElementById("doom-exit"),led=document.getElementById("bd-led");
   function openDoom(){overlay.hidden=false;overlay.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";var cv=document.getElementById("c");if(cv)try{cv.focus()}catch(e){}}
   function closeDoom(){overlay.hidden=true;overlay.setAttribute("aria-hidden","true");document.body.style.overflow="";try{if(document.exitPointerLock)document.exitPointerLock()}catch(e){}}
-  if(led){
-    led.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();openDoom()});
-    led.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();openDoom()}});
-  }
+  window.__openDoom=openDoom;
   if(exitBtn)exitBtn.addEventListener("click",closeDoom);
   document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!overlay.hidden)closeDoom()});
 })();
@@ -3794,7 +3791,7 @@ function outside(){var i,j;
 function buildWorld(){Lb=[];Pb=[];Tb=[];Ob=[];COL=[];FLR=[];FQ=[];MQ=[];
  outside();bridge();atrium();library();ops();server();theatre();
  ZONES=[['THE BRIDGE',-5,12,5,71],['THE ATRIUM',-30,-34,30,12],['THE LIBRARY',-72,-34,-30,-2],['OPERATIONS',30,-34,72,-2],['SERVER HALL',30,-72,72,-34],['THE THEATRE',-30,-80,30,-34],['THE STAGE',-20,-80,20,-62]]}
-var SB,HB,B={},P={},DYN,dynN=380,dynA,dyn=[];
+var SB,HB,BW,B={},P={},DYN,dynN=380,dynA,dyn=[];
 function mk(l,p,t){return{l:buf(new Float32Array(l)),ln:l.length/7,p:buf(new Float32Array(p)),pn:p.length/9,t:buf(new Float32Array(t)),tn:t.length/7}}
 function mkOut(o){return mk(o.L,o.P,o.T)}
 function sh(t,s){var o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(o));return o}
@@ -3827,7 +3824,7 @@ function initGL(){
  B.fa=buf(new Float32Array([-1400,FY,-1400,1400,FY,-1400,1400,FY,1400,-1400,FY,-1400,1400,FY,1400,-1400,FY,1400]));
  buildWorld();B.s=mk(Lb,Pb,Tb);B.o={t:buf(new Float32Array(Ob)),tn:Ob.length/7};
  FQ.forEach(function(f){f.b=buf(new Float32Array(f.v))});MQ.forEach(function(f){f.b=buf(new Float32Array(f.v))});
- SB=mkOut(buildSaturnAt(62,7000));HB=mkOut(HOLO);
+ SB=mkOut(buildSaturnAt(62,7000));HB=mkOut(HOLO);BW=mkOut(buildBlackwall());
  dynA=new Float32Array(dynN*9);DYN=buf(dynA,true);initDyn();buildMap();
 }
 var TANKS=[[-29.4,-30],[-29.4,-25],[26.2,-30],[26.2,-25]];
@@ -3862,9 +3859,11 @@ function render(t){
  var fog=.0026;
  gl.useProgram(P.L);gl.uniform1f(P.L.u.fog,fog);gl.uniform1f(P.L.u.gain,1);gl.uniform1f(P.L.u.t,t);gl.uniform1f(P.L.u.rv,RV);gl.uniform1f(P.L.u.pu,PU);gl.uniform1f(P.L.u.rk,ST.rk);lines(B.s);
  gl.uniformMatrix4fv(P.L.u.M,false,mul(trans(0,160,-380),rotY(t*.03)));gl.uniform1f(P.L.u.gain,1+ST.pulse*.9);gl.uniform1f(P.L.u.rk,0);lines(SB);gl.uniform1f(P.L.u.rk,ST.rk);
+ var bwb=Math.max(0,Math.sin(t*2.1)),bwb2=Math.max(0,Math.sin(t*2.1-.9)),bwg=.4+.2*(.5+.5*Math.sin(t*.7))+.6*(Math.pow(bwb,10)+.6*Math.pow(bwb2,10));if(Math.sin(t*41)*Math.sin(t*13)>.9)bwg*=1.5;gl.uniformMatrix4fv(P.L.u.M,false,I);gl.uniform1f(P.L.u.fog,fog);gl.uniform1f(P.L.u.gain,bwg);gl.uniform1f(P.L.u.rk,0);lines(BW);gl.uniform1f(P.L.u.rk,ST.rk);gl.uniform1f(P.L.u.fog,fog);
  gl.uniformMatrix4fv(P.L.u.M,false,mul(trans(50,3.5,-19),rotY(t*.25)));gl.uniform1f(P.L.u.gain,1);lines(HB);
  gl.useProgram(P.P);gl.uniformMatrix4fv(P.P.u.VP,false,VP);gl.uniform3fv(P.P.u.cam,cam);gl.uniform1f(P.P.u.t,t);gl.uniform1f(P.P.u.fog,fog*.9);gl.uniform1f(P.P.u.gain,.85);gl.uniform1f(P.P.u.scale,scale);gl.uniformMatrix4fv(P.P.u.M,false,I);gl.uniform1f(P.P.u.rv,RV);gl.uniform1f(P.P.u.pu,PU);gl.uniform1f(P.P.u.rk,ST.rk);
  pts(B.s);dl(DYN,gl.POINTS,9,dynN,1);
+ gl.uniformMatrix4fv(P.P.u.M,false,I);gl.uniform1f(P.P.u.fog,fog*.9);gl.uniform1f(P.P.u.gain,bwg*.9);gl.uniform1f(P.P.u.rk,0);pts(BW);gl.uniform1f(P.P.u.rk,ST.rk);gl.uniform1f(P.P.u.fog,fog*.9);
  gl.uniformMatrix4fv(P.P.u.M,false,mul(trans(0,160,-380),rotY(t*.03)));gl.uniform1f(P.P.u.gain,.85+ST.pulse*.8);gl.uniform1f(P.P.u.rk,0);pts(SB);gl.uniform1f(P.P.u.rk,ST.rk);
  gl.uniformMatrix4fv(P.P.u.M,false,mul(trans(50,3.5,-19),rotY(t*.25)));gl.uniform1f(P.P.u.gain,1);pts(HB);
  gl.depthMask(true);
@@ -3912,7 +3911,7 @@ function ping(f){if(!AC||muted)return;var o=AC.createOscillator(),g=AC.createGai
 function toggleMute(){muted=!muted;if(aMaster)aMaster.gain.value=muted?0:.55;$('sat-mute').textContent=muted?'SOUND OFF':'SOUND ON'}
 /* ---- input ---- */
 var CODES={KeyW:1,KeyA:1,KeyS:1,KeyD:1,ArrowUp:1,ArrowDown:1,ArrowLeft:1,ArrowRight:1,ShiftLeft:1,ShiftRight:1,Space:1};
-function kd(e){if(e.code==='KeyM'){toggleMute();return}if(e.code==='KeyV'){ST.rev=ST.rev?0:1;return}if(CODES[e.code]){keys[e.code]=1;e.preventDefault()}}
+function kd(e){if(e.code==='KeyE'){if(NEAR)sit(NEAR);return}if(e.code==='KeyM'){toggleMute();return}if(e.code==='KeyV'){ST.rev=ST.rev?0:1;return}if(CODES[e.code]){keys[e.code]=1;e.preventDefault()}}
 function ku(e){if(CODES[e.code]){keys[e.code]=0;e.preventDefault()}}
 function mm(e){if(pl){ST.yaw+=e.movementX*.0022;ST.pitch=Math.max(-1.3,Math.min(1.3,ST.pitch-e.movementY*.0022))}else if(drag){ST.yaw+=(e.clientX-lastMx)*.004;ST.pitch=Math.max(-1.3,Math.min(1.3,ST.pitch-(e.clientY-lastMy)*.004));lastMx=e.clientX;lastMy=e.clientY}}
 function plc(){pl=document.pointerLockElement===cv;if(!pl&&running&&!coarse&&!drag&&started&&!ST.noPause)pause()}
@@ -3922,6 +3921,26 @@ function start(){aInit();$('sat-ov').hidden=true;started=true;if(!coarse){try{va
 var last=0;
 var hudT=0;
 function loop(now){if(!running)return;var dt=Math.min(.05,(now-last)/1000);last=now;step(dt);stepDyn(ST.t,dt);render(ST.t);hudT+=dt;if(hudT>.08){hudT=0;hud()}raf=requestAnimationFrame(loop)}
+/* ---- the Blackwall: a pulsing barrier at the far edge of render distance, behind the bridge ---- */
+function buildBlackwall(){var out={L:[],P:[],T:[]};var sL=Lb,sP=Pb,sT=Tb;Lb=out.L;Pb=out.P;Tb=out.T;
+ var Z=430,X=420,Y0=FY,CW=14,i,k,n=Math.ceil(2*X/CW),tops=[];
+ /* a ragged cliff of dead static sitting behind the bridge entrance */
+ for(i=0;i<n;i++){var cx=-X+i*CW;tops.push(R(40,95)+Math.max(0,1-Math.abs(cx)/300)*R(30,90))}
+ for(i=0;i<n;i++){var x0=-X+i*CW,x1=x0+CW,T=tops[i];
+  qd([x0,Y0,Z],[x1,Y0,Z],[x1,T,Z],[x0,T,Z],RED,.22,.02);
+  beam([x0,Y0,Z-.2],[x0,T,Z-.2],.35,RED,.4,.9);
+  beam([x0,T,Z-.2],[x1,T,Z-.2],.9,RED,1,1);
+  if(i<n-1)beam([x1,T,Z-.2],[x1,tops[i+1],Z-.2],.9,RED,1,1);
+  if(RNG()<.15)beam([x0+CW*.5,T,Z-.4],[x0+CW*.5,T+R(10,40),Z-.4],.4,RED,.9,.1)}
+ for(var y=Y0+20;y<170;y+=18)ln([-X,y,Z],[X,y,Z],RED,.15);
+ for(k=0;k<20;k++){var gx=R(-X,X),gy=R(Y0,60),gh=R(2,10),gw=R(8,50);qd([gx,gy,Z-.5],[gx+gw,gy,Z-.5],[gx+gw,gy+gh,Z-.5],[gx,gy+gh,Z-.5],RNG()<.25?WHITE:RED,.35,.35)}
+ for(k=0;k<(3500*Q|0);k++){var ci=Math.floor(RNG()*n),px=-X+(ci+RNG())*CW,py=tops[ci]-Math.pow(RNG(),2.2)*(tops[ci]-Y0);pt(px,py,Z+R(-1,1),RNG()<.92?RED:WHITE,R(5,14),R(.3,.9))}
+ Lb=sL;Pb=sP;Tb=sT;return out}
+/* ---- netrunning seats (jack-in rigs): one opens DOOM, every other rig opens Breach Protocol ---- */
+var SEATS=[[67,-26,1],[67,-19,0],[67,-12,0],[43,-5,0],[50,-5,0],[57,-5,0]].map(function(r){return{x:r[0],z:r[1],doom:!!r[2]}});
+var NEAR=null;
+function seatNear(){var best=null,bd=2.2;for(var i=0;i<SEATS.length;i++){var r=SEATS[i],d=Math.hypot(ST.x-r.x,ST.z-r.z);if(d<bd){bd=d;best=r}}return best}
+function sit(s){close();if(s.doom){if(window.__openDoom)window.__openDoom()}else{var t=document.createElement('button');t.setAttribute('data-breach','seat');t.style.display='none';document.body.appendChild(t);t.click();document.body.removeChild(t)}}
 /* ---- HUD + minimap ---- */
 var elZone,elTele,elCore,mapC,mapX,mapStatic;
 function buildMap(){mapC=$('sat-map');mapX=mapC.getContext('2d');mapStatic=document.createElement('canvas');mapStatic.width=mapC.width;mapStatic.height=mapC.height;var g=mapStatic.getContext('2d');
@@ -3932,6 +3951,7 @@ function mx(x){return 84+x}function mz(z){return 84+(z+4.5)}
 function drawMap(){mapX.clearRect(0,0,mapC.width,mapC.height);mapX.drawImage(mapStatic,0,0);var pulse=.5+.5*Math.sin(ST.t*5);
   mapX.save();mapX.translate(mx(ST.x),mz(ST.z));mapX.rotate(ST.yaw);mapX.fillStyle='#fff';mapX.shadowColor='#19f0d0';mapX.shadowBlur=6;mapX.beginPath();mapX.moveTo(0,-6);mapX.lineTo(4,5);mapX.lineTo(0,3);mapX.lineTo(-4,5);mapX.closePath();mapX.fill();mapX.restore()}
 function hud(){if(!elZone){elZone=$('sat-zone');elTele=$('sat-tele');elCore=$('sat-core')}
+ NEAR=seatNear();
  var zt=ST.zone+' // LINK STABLE';if(elZone.textContent!==zt)elZone.textContent=zt;if(elCore.textContent!==ST.zone)elCore.textContent=ST.zone;
  elTele.innerHTML='POS <b>'+ST.x.toFixed(0)+' '+ST.z.toFixed(0)+'</b><br>LEVEL <b>'+ST.fy.toFixed(1)+'</b> M<br>HDG <b>'+(((ST.yaw*180/Math.PI)%360+360)%360).toFixed(0)+'&deg;</b>';
  drawMap()}
