@@ -4193,9 +4193,7 @@ window.SATURN={audio:aInit,open:open,close:close,get st(){return ST},start:start
  frame:function(){ST.t+=.016;stepDyn(ST.t,.016);render(ST.t);return cv.toDataURL('image/png')},get counts(){return {lines:B.s.ln,pts:B.s.pn+SB.pn+HB.pn,tris:B.s.tn,occ:B.o.tn,cols:COL.length,floors:FLR.length}}};
 })();
 
-/* secret entrances into Sanctuary:
-   1) tap the BREACH PROTOCOL title 5 times fast
-   2) switch on the sequence chips in this exact order: Cloak, Slide, Backdoor, Zap */
+
 (function(){var ov=document.getElementById('breach-overlay'),t=document.getElementById('bp-title'),chips=document.getElementById('bp-chips');
 function enter(){var ex=document.getElementById('breach-exit');
 if(ov){ov.style.transition='filter .35s';ov.style.filter='invert(1) hue-rotate(160deg) contrast(1.4)'}
