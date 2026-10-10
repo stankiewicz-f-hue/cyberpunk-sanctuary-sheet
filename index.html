@@ -878,7 +878,7 @@ const QH=[
 ["Short Circuit",0,"Fries cyberware. Nasty on heavily cybered targets."],
 ["Cyberware Malfunction",0,"Knocks the target's cyberware offline."]];
 const QHS={jack:false,breach:false,used:0,hit:{}};
-document.getElementById("rext").insertAdjacentHTML("beforeend",`<div class="rx" data-rxp="Netrunner" hidden><h4>QUICKHACKS · IN COMBAT<span>INTERFACE CHECK = d10 + RANK</span></h4><small>Use this in a fight, when there is no time to dive. It sits alongside the Breach Protocol and does not replace it (Edgerunners Mission Kit rules). You hack a target's Neuroport from up to 50 m/yds away. Each step costs one Net action: <b>Jack In</b>, <b>Breach</b> any Passwall, <b>Quickhack</b>, <b>Jack Out</b>. Every check is d10 + your Interface rank against a DV. You get one quickhack per target per turn, even on a failure. Press NEW TURN at the start of each turn. Hacks with a blank DV: type the DV from your book. To play the Breach step as the minigame, press OPEN BREACH PROTOCOL below: it takes this target, the Passwall DV and your Interface bonus, and landing its Backdoor sequence marks the Passwall breached for you. MARK BREACHED is still here for a GM call.</small>
+document.getElementById("rext").insertAdjacentHTML("beforeend",`<div class="rx" data-rxp="Netrunner" hidden><h4>QUICKHACKS · IN COMBAT<span>INTERFACE CHECK = d10 + RANK</span></h4><small>Use this in a fight, when there is no time to dive. It sits alongside the Breach Protocol and does not replace it (Edgerunners Mission Kit rules). You hack a target's Neuroport from up to 50 m/yds away. Each step costs one Net action: <b>Jack In</b> (free if you carry a Netrunning Suit in your inventory), <b>Breach</b> any Passwall, <b>Quickhack</b>, <b>Jack Out</b>. Every check is d10 + your Interface rank against a DV. You get one quickhack per target per turn, even on a failure. Press NEW TURN at the start of each turn. Hacks with a blank DV: type the DV from your book. To play the Breach step as the minigame, press OPEN BREACH PROTOCOL below: it takes this target, the Passwall DV and your Interface bonus, and landing its Backdoor sequence marks the Passwall breached for you. MARK BREACHED is still here for a GM call.</small>
 <div class="rxr"><small>Passwall up, or not in combat? Play it as the full Breach Protocol minigame.</small><button type="button" class="mini" data-breach="qh">OPEN BREACH PROTOCOL</button></div>
 <div class="rxr qhs"><span class="badge" id="qhj">NOT JACKED IN</span><span class="badge" id="qhb">NO PASSWALL</span><span class="badge" id="qhu">NET ACTIONS 0</span></div>
 <div class="rxr"><label>TARGET<input class="fi nm3" id="qhtg" placeholder="Name"></label><label>PASSWALL DV<input class="fi" id="qhpw" type="number" min="0" placeholder="none"></label><label>NET ACTIONS / TURN<input class="fi" type="number" min="0" placeholder="auto" data-k="qh_na"></label><label>INTERFACE BONUS<input class="fi" type="number" data-k="qh_b"></label></div>
@@ -889,6 +889,7 @@ function qhUi(){const j=$("#qhj");if(!j)return;const cap=qhCap(),pw=+$("#qhpw").
  j.textContent=QHS.jack?"JACKED IN":"NOT JACKED IN";j.className="badge"+(QHS.jack?"":" sw");
  b.textContent=!pw?"NO PASSWALL":QHS.breach?"PASSWALL BREACHED":"PASSWALL UP";b.className="badge"+(!pw||QHS.breach?"":" sw");
  u.textContent="NET ACTIONS "+QHS.used+(cap?" / "+cap:"");u.className="badge"+(cap&&QHS.used>=cap?" mw":"");if(window.bpNetBar)window.bpNetBar()}
+function hasNetSuit(){for(let r=0;r<28;r++){const n=val("inv"+r+"_n"),q=val("inv"+r+"_q");if(n&&/net[\s-]*runn(?:ing|er)(?:'s)?[\s-]*suit/i.test(n.value)&&(!q||q.value===""||+q.value>0))return true}return false}
 function qhNet(){const cap=qhCap();if(cap&&QHS.used>=cap){logRoll("Net actions","all "+cap+" used this turn: press NEW TURN","✗","bad");return false}QHS.used++;return true}
 function qhCap(){const v=+val("qh_na").value||0;if(v)return v;const r=qhRank();return r?(r>=10?5:r>=7?4:r>=4?3:2):0}
 function qhMove(label){const cap=qhCap(),of=cap?" / "+cap:"";if(cap&&QHS.used>=cap)return{ok:false,msg:"No Net actions left ("+QHS.used+" / "+cap+"). Press END TURN above to refresh them, or UNPLUG."};
@@ -896,9 +897,9 @@ function qhMove(label){const cap=qhCap(),of=cap?" / "+cap:"";if(cap&&QHS.used>=c
 function qhCheck(label,dv){return withDV(dv,()=>roll(label,qhRank(),+val("qh_b").value||0,"bonus"))}
 function qhJack(){const rk=qhRank();if(!rk){logRoll("Jack In","set your Netrunner RANK first","—","bad");return}
  if(QHS.jack){logRoll("Jack In","already connected","—","");return}
- if(!qhNet()){qhUi();return}
- if(rk>=3){QHS.jack=true;logRoll("Jack In","Interface "+rk+": no check needed (target within 50 m/yds)","CONNECTED","ok")}
- else{const r=roll("Jack In",rk,+val("qh_b").value||0,"bonus");QHS.jack=r.dv?r.win:true;if(!r.dv)logRoll("Jack In","low Interface: no DV set, the GM calls success or failure","—","")}
+ const fr=hasNetSuit();if(!fr&&!qhNet()){qhUi();return}
+ if(rk>=3){QHS.jack=true;logRoll("Jack In","Interface "+rk+": no check needed (target within 50 m/yds)"+(fr?" · free with Netrunning Suit":""),"CONNECTED","ok")}
+ else{if(fr)logRoll("Jack In","free with Netrunning Suit: no Net action spent","—","");const r=roll("Jack In",rk,+val("qh_b").value||0,"bonus");QHS.jack=r.dv?r.win:true;if(!r.dv)logRoll("Jack In","low Interface: no DV set, the GM calls success or failure","—","")}
  qhUi()}
 function qhBreach(){const rk=qhRank(),pw=+$("#qhpw").value||0;if(!rk){logRoll("Breach","set your Netrunner RANK first","—","bad");return}
  if(!QHS.jack){logRoll("Breach","Jack In first","—","bad");return}
@@ -936,7 +937,7 @@ const BPX={
  runner:()=>val("handle").value.trim(),
  rank:()=>rkOf("Netrunner"),
  mods(){const parts=[],add=(l,n)=>{if(n)parts.push([l,n])},rs=restState();add("wounds",pen());add(isRobot()?"low power":"sleep",rs.pen||0);add("MOD",+$("#md").value||0);add("Interface bonus",+val("qh_b").value||0);return{parts,total:parts.reduce((a,p)=>a+p[1],0),out:!!rs.out}},
- netStart:c=>qhRunStart(c),setHp:v=>{val("hp").value=v;upd();logRoll("Breach Protocol","GM waived the hit: HP back to "+v,"UNDONE","")},net:()=>({jack:QHS.jack,breach:QHS.breach,used:QHS.used,cap:qhCap(),rank:qhRank()}),jackIn:()=>{qhJack()},turn:()=>qhTurn(),move:l=>qhMove(l),jackOut:()=>qhUnplug(),hpInfo:()=>bpHpInfo(),hit:(x,w)=>bpHit(x,w),
+ netStart:c=>qhRunStart(c),setHp:v=>{val("hp").value=v;upd();logRoll("Breach Protocol","GM waived the hit: HP back to "+v,"UNDONE","")},net:()=>({suit:hasNetSuit(),jack:QHS.jack,breach:QHS.breach,used:QHS.used,cap:qhCap(),rank:qhRank()}),jackIn:()=>{qhJack()},turn:()=>qhTurn(),move:l=>qhMove(l),jackOut:()=>qhUnplug(),hpInfo:()=>bpHpInfo(),hit:(x,w)=>bpHit(x,w),
  outText:()=>isRobot()?"Powered off: recharge on the Role & Status tab first. The sheet blocks rolls at 0 power, and so does the breach.":"0 sleep left: rest on the Role & Status tab first. The sheet blocks rolls at 0 sleep, and so does the breach.",
  addEb:n=>{const eb=+val("eb").value||0;val("eb").value=eb+n;upd();return{ok:true,eb:eb+n}},
  refund:()=>{if(QHS.used>0){QHS.used--;qhUi();return{ok:true,used:QHS.used,cap:qhCap()}}return{ok:false,used:0,cap:qhCap()}},
@@ -1356,7 +1357,7 @@ pl.addEventListener("click",function(){
     <summary>HOW IT PLAYS</summary>
     <ul>
       <li><b>Program effects:</b> every sequence does something the moment it uploads, and the PROGRAM EFFECTS feed under SEQUENCES (and your Roll Log) says what. <b>Scanner</b> lights the next good cell and finds a hidden terminal (you sell its data: eb goes straight onto your sheet) or a lurking enemy. <b>Backdoor</b> refunds 1 Net action (once per run) and, from the Quickhacks panel, marks the Passwall breached. <b>Pathfinder</b> adds 1 buffer slot on top of its floor preview. <b>Slide</b> lets your next pick be any unused code on top of its floor skip. <b>Eye-Dee</b> exposes ICE for -1 Rez. <b>Cloak</b> cancels backlash and ICE retaliation when you jack out. <b>Control</b> seizes a system and adds 10 s. <b>Virus</b> eats 2 Rez of ICE on top of the bottom-floor payload. <b>Zap</b> destroys ICE outright; with no ICE it wipes your trace like Cloak.</li>
-      <li><b>Net actions:</b> Jack In, starting the breach, every move to a deeper floor (Descend, Slide or a fork door) and Unplug each cost 1 Net action. You get 2 at Interface 1 to 3, 3 at 4 to 6, 4 at 7 to 9 and 5 at 10, unless you type your own total in the Quickhacks panel. END TURN refreshes them.</li>
+      <li><b>Net actions:</b> Jack In (free if a Netrunning Suit is in your inventory), starting the breach, every move to a deeper floor (Descend, Slide or a fork door) and Unplug each cost 1 Net action. You get 2 at Interface 1 to 3, 3 at 4 to 6, 4 at 7 to 9 and 5 at 10, unless you type your own total in the Quickhacks panel. END TURN refreshes them.</li>
       <li><b>Damage:</b> when ICE is still standing as you jack out, or a breach locks you out, the hit is rolled for you and taken straight off your HP (armor skipped). ICE hits 2d6 at Black Site, 3d6 at Militech and 4d6 at Arasaka, half as many dice if you wounded it. A failed breach costs 1d6, or 2d6 from Black Site up. The GM can waive a hit with one tap.</li>
       <li><b>Virus payload:</b> land the Virus on the bottom floor and you can write what you rewrite in the system. Your party sees it in the Roll Log.</li>
       <li>The first pick comes from the highlighted top row. After that the picks alternate: a column, then a row, then a column again. A cell can only be used once.</li>
@@ -1816,7 +1817,7 @@ function netBar(){
       t.textContent=left+' of '+n.cap+' Net actions left'+(out?'. Press END TURN to refresh.':'');
     } else t.textContent=n.rank?'':'Set your Netrunner rank on the sheet to count Net actions.';
   });
-  el.start.textContent=n.jack?'START BREACH \u00b7 1 NET ACTION':'JACK IN \u00b7 1 NET ACTION';
+  el.start.textContent=n.jack?'START BREACH \u00b7 1 NET ACTION':'JACK IN \u00b7 '+(n.suit?'FREE (NETRUNNING SUIT)':'1 NET ACTION');var s1=document.querySelector('#bp-steps li small');if(s1)s1.textContent=n.suit?'Free with Netrunning Suit':'1 Net action';
   [].forEach.call(document.querySelectorAll('#bp-steps li'),function(li,i){var a=n.jack?1:0; li.className=i<a?'done':(i===a?'now':'');});
   [el.again,el.slideBtn].forEach(function(b){ if(b&&b.getAttribute('data-move')) b.classList.toggle('nomove',out); });
   [].forEach.call(el.forkDoors.querySelectorAll('button.door'),function(b){ b.classList.toggle('nomove',out); });
@@ -1832,7 +1833,7 @@ function startGame(){
   var n0=(typeof BPX!=='undefined'&&BPX.net)?BPX.net():{jack:true};
   if(!n0.jack){
     if(!n0.rank){el.msg.textContent='Set your Netrunner rank on the Role & Status tab first.';return;}
-    if(n0.cap&&n0.used>=n0.cap){el.msg.textContent='No Net actions left ('+n0.used+' / '+n0.cap+'). Press END TURN above to refresh them.';return;}
+    if(!n0.suit&&n0.cap&&n0.used>=n0.cap){el.msg.textContent='No Net actions left ('+n0.used+' / '+n0.cap+'). Press END TURN above to refresh them.';return;}
     BPX.jackIn(); var n1=BPX.net(); netBar();
     el.msg.textContent=n1.jack?'Connected. Now press START BREACH (1 Net action) to run the architecture.':'The jack-in failed. Press JACK IN again (it costs another Net action).';
     return;
